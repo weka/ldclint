@@ -25,5 +25,11 @@ int foo(int p1)
     // CHECK-DAG: redundant.d(26): Warning: Redundant expression `p1 || p1`
     ret |= p1 || p1;
 
-    return ret;
+    int ret2;
+    // CHECK-DAG: redundant.d(30): Warning: Redundant expression `p1 - p1`
+    ret2 += p1 - p1;
+    // CHECK-DAG: redundant.d(32): Warning: Redundant expression `p1 ^ p1`
+    ret2 += p1 ^ p1;
+
+    return cast(int)ret + ret2;
 }

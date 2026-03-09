@@ -51,6 +51,8 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
     override void visit(Querier!(DMD.LogicalExp) e)  { visitBinExp(e); }
     override void visit(Querier!(DMD.AndExp) e)      { visitBinExp(e); }
     override void visit(Querier!(DMD.OrExp) e)       { visitBinExp(e); }
+    override void visit(Querier!(DMD.MinExp) e)      { visitBinExp(e); }
+    override void visit(Querier!(DMD.XorExp) e)      { visitBinExp(e); }
 
     private void visitBinExp(E)(E e)
     {
