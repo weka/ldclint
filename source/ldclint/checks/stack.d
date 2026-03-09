@@ -1,18 +1,29 @@
 module ldclint.checks.stack;
 
+import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.report;
+
+import DMD = ldclint.dmd;
+
+import std.typecons : No, Yes, Flag;
+
 enum Metadata = imported!"ldclint.checks".Metadata(
     "stack",
     No.byDefault,
 );
 
-final class Check : imported!"ldclint.checks".Check!Metadata
+final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
+    alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
+
+    enum size_t maxVariableStackSize = 256;
+
     DMD.ScopeTracker scopeTracker;
 
-    override void visit(DMD.FuncDeclaration fd)
+    override void visit(Querier!(DMD.FuncDeclaration) fd)
     {
         // lets skip invalid functions
-        if (!isValid(fd)) return;
+        if (!fd.isValid()) return;
 
         auto sc = scopeTracker.track(fd);
         scope(exit) scopeTracker.untrack(fd, sc);
@@ -21,10 +32,10 @@ final class Check : imported!"ldclint.checks".Check!Metadata
         super.visit(fd);
     }
 
-    override void visit(DMD.VarDeclaration vd)
+    override void visit(Querier!(DMD.VarDeclaration) vd)
     {
         // lets skip invalid variable declarations
-        if (!isValid(vd)) return;
+        if (!vd.isValid()) return;
 
         scope(exit)
         {
@@ -36,37 +47,37 @@ final class Check : imported!"ldclint.checks".Check!Metadata
         if (scopeTracker.functionDepth <= 0) return;
 
         // lets skip global variables inside functions
-        if (vd.storage_class & STC.gshared || vd.storage_class & STC.static_)
+        if (vd.storage_class & DMD.STC.gshared || vd.storage_class & DMD.STC.static_)
             return;
 
         // lets skip extern symbols
-        if (vd.storage_class & STC.extern_) return;
+        if (vd.storage_class & DMD.STC.extern_) return;
 
         // lets skip fields inside structs/classes
-        if (vd.storage_class & STC.field) return;
+        if (vd.storage_class & DMD.STC.field) return;
 
         // lets skip references
-        if (vd.storage_class & STC.ref_) return;
+        if (vd.storage_class & DMD.STC.ref_) return;
 
         // lets skip template parameters
-        if (vd.storage_class & STC.templateparameter) return;
+        if (vd.storage_class & DMD.STC.templateparameter) return;
 
-        Type type = vd.type;
-        if (type is null) type = vd.originalType;
+        DMD.Type type = vd.astNode.type;
+        if (type is null) type = vd.astNode.originalType;
         if (type is null) return;
 
-        auto rsz = querier(vd.type).size;
+        auto rsz = querier(type).size;
         // unresolved size
         if (!rsz.resolved) return;
 
         auto sz = rsz.get;
 
-        if (sz != size_t.max && sz > options.maxVariableStackSize)
+        if (sz != size_t.max && sz > maxVariableStackSize)
         {
-            warning(vd.loc, "Stack variable `%s` is big (size: %lu, limit: %lu)", vd.toChars(), type.size, options.maxVariableStackSize);
+            warning(vd.loc, "Stack variable `%s` is big (size: %lu, limit: %lu)", vd.toChars(), sz, maxVariableStackSize);
         }
     }
 
     // avoid all sorts of false positives without semantics
-    override void visit(DMD.TemplateDeclaration) { /* skip */ }
+    override void visit(Querier!(DMD.TemplateDeclaration)) { /* skip */ }
 }

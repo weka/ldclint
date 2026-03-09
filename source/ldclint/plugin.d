@@ -101,4 +101,8 @@ mixin plugin!(
     imported!"ldclint.checks.parser",
     imported!"ldclint.checks.alignment",
     imported!"ldclint.checks.mayoverflow",
+    imported!"ldclint.checks.boolbitwise",
+    imported!"ldclint.checks.stack",
+    imported!"ldclint.checks.coherence",
+    imported!"ldclint.checks.fortify",
 );

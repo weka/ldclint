@@ -1,58 +1,36 @@
 module ldclint.checks.coherence;
 
-import ldclint.visitors;
-import ldclint.dmd.astutility;
-import ldclint.dmd.location;
+import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.report;
 
-import dmd.dmodule;
-import dmd.declaration;
-import dmd.dimport;
-import dmd.dsymbol;
-import dmd.func;
-import dmd.errors;
-import dmd.tokens;
-import dmd.aggregate;
-import dmd.id;
-import dmd.expression;
-import dmd.statement;
-import dmd.mtype;
-import dmd.astenums;
-import dmd.dtemplate;
+import DMD = ldclint.dmd;
 
-import std.stdio;
-import std.string;
-import std.array;
-import std.range;
-import std.bitmanip;
+import std.typecons : No, Yes, Flag;
 
-extern(C++) final class CoherenceCheckVisitor : DFSPluginVisitor
+enum Metadata = imported!"ldclint.checks".Metadata(
+    "coherence",
+    Yes.byDefault,
+);
+
+final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
-    alias visit = DFSPluginVisitor.visit;
+    alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
-    override void visit(Dsymbol sym)
+    override void visit(Querier!(DMD.Dsymbol) sym)
     {
         // lets skip invalid symbols
-        if (!isValid(sym)) return;
+        if (!sym.isValid()) return;
 
         if (sym.isforwardRef())
         {
             warning(sym.loc, "This symbol can't be resolved because it's a forward reference");
         }
 
-        if (auto decl = sym.isDeclaration())
+        if (auto fd = sym.isFuncDeclaration())
         {
-            if (auto fd = decl.isFuncDeclaration())
+            if (fd.resolvedLinkage() == DMD.LINK.default_)
             {
-                if (fd.resolvedLinkage() == LINK.default_)
-                {
-                    warning(fd.loc, "Forward reference on resolving linkage");
-                }
-            }
-
-            if (auto vd = decl.isVarDeclaration())
-            {
-                // this errors if not known
-                cast(void)vd.isDataseg();
+                warning(fd.loc, "Forward reference on resolving linkage");
             }
         }
 
@@ -60,114 +38,39 @@ extern(C++) final class CoherenceCheckVisitor : DFSPluginVisitor
         super.visit(sym);
     }
 
-    override void visit(Expression exp)
-    {
-        // lets skip invalid expressions
-        if (!isValid(exp)) return;
-
-        auto qexp = querier(exp);
-
-        string error;
-
-        if (!qexp.isResolved(error))
-            .error(exp.loc, "%.*s", cast(int)error.length, error.ptr);
-
-        // traverse through the AST
-        super.visit(exp);
-    }
-
-    override void visit(Declaration decl)
-    {
-        // lets skip invalid declarations
-        if (!isValid(decl)) return;
-
-        auto qdecl = querier(decl);
-
-        string error;
-
-        if (!qdecl.isResolved(error))
-            .error(decl.loc, "%.*s", cast(int)error.length, error.ptr);
-
-        // traverse through the AST
-        super.visit(decl);
-    }
-
-    override void visit(AggregateDeclaration ad)
-    {
-        // lets skip invalid declarations
-        if (!isValid(ad)) return;
-
-        if (auto at = ad.aliasthis)
-        {
-            if (at.isforwardRef() || (at.sym && at.sym.isforwardRef()))
-            {
-                warning(at.loc, "Alias this has a forward reference symbol");
-            }
-        }
-
-        // traverse through the AST
-        super.visit(ad);
-    }
-
-    override void visit(Type t)
+    override void visit(Querier!(DMD.Type) t)
     {
         // lets skip invalid types
-        if (!isValid(t)) return;
+        if (!t.isValid()) return;
 
-        // look for type bugs internally
-        t.check();
-
-        switch (t.ty)
+        switch (t.astNode.ty)
         {
-            case TY.Tident:
-            case TY.Ttypeof:
-            case TY.Tmixin:
-                warning(Loc.initial, "Type `%s` is a forward reference", t.toChars());
+            case DMD.Tident:
+            case DMD.TY.Ttypeof:
+            case DMD.TY.Tmixin:
+                warning(DMD.Loc.initial, "Type `%s` is a forward reference", t.toChars());
                 break;
 
-            case TY.Tstruct:
-                auto ts = t.isTypeStruct();
+            case DMD.Tstruct:
+                auto ts = t.astNode.isTypeStruct();
                 if (!ts)
                 {
-                    error(Loc.initial, "Type `%s` is not coherent with it's type class", t.toChars());
+                    error(DMD.Loc.initial, "Type `%s` is not coherent with it's type class", t.toChars());
                 }
-
-                // FIXME: the compiler seem to give wrong information about alias this forward references here
-
-                /*
-                if (ts.att == AliasThisRec.fwdref)
-                {
-                    warning(Loc.initial, "Type struct `%s` has an alias this with a forward reference", t.toChars());
-                }
-                */
-
-                if (ts.sym && ts.sym.members)
-                    goto default;
-
                 break;
 
-            case TY.Terror:
-                error(Loc.initial, "Type `%s` resolves to an error type", t.toChars());
+            case DMD.Terror:
+                error(DMD.Loc.initial, "Type `%s` resolves to an error type", t.toChars());
                 break;
+
             default:
-                // this errors if the size is not known
-                cast(void)t.size();
                 break;
         }
 
         // traverse through the AST
         super.visit(t);
-
-        if (auto bt = t.toBasetype())
-        {
-            if (bt !is t) visit(bt);
-        }
-        else
-        {
-            error(Loc.initial, "Type `%s` can't be resolved to the base type", t.toChars());
-        }
     }
 
     // avoid all sorts of false positives without semantics
-    override void visit(TemplateDeclaration) { /* skip */ }
+    override void visit(Querier!(DMD.TemplateDeclaration)) { /* skip */ }
 }

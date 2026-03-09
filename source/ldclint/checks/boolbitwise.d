@@ -1,37 +1,31 @@
 module ldclint.checks.boolbitwise;
 
-import ldclint.visitors;
-import ldclint.dmd.astutility;
+import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.report;
 
-import dmd.dmodule;
-import dmd.declaration;
-import dmd.dimport;
-import dmd.dsymbol;
-import dmd.func;
-import dmd.errors;
-import dmd.id;
-import dmd.expression;
-import dmd.statement;
-import dmd.mtype;
-import dmd.astenums;
+import DMD = ldclint.dmd;
 
-import std.stdio;
-import std.string;
-import std.array;
-import std.range;
-import std.bitmanip;
+import std.typecons : No, Yes, Flag;
 
-extern(C++) final class BoolBitwiseCheckVisitor : DFSPluginVisitor
+enum Metadata = imported!"ldclint.checks".Metadata(
+    "boolbitwise",
+    Yes.byDefault,
+);
+
+final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
-    alias visit = DFSPluginVisitor.visit;
+    alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
-    override void visit(AndExp e) { visitBinExp(e); }
-    override void visit(OrExp e)  { visitBinExp(e); }
-    override void visit(ComExp e) { visitUnaExp(e); }
+    override void visit(Querier!(DMD.AndExp) e) { visitBinExp(e); }
+    override void visit(Querier!(DMD.OrExp) e)  { visitBinExp(e); }
+    override void visit(Querier!(DMD.ComExp) e) { visitUnaExp(e); }
 
     private void visitBinExp(E)(E e)
     {
         super.visit(e);
+
+        if (!e.isValid()) return;
+        if (!e.isResolved) return;
 
         visitExp(e.e1);
         visitExp(e.e2);
@@ -41,21 +35,25 @@ extern(C++) final class BoolBitwiseCheckVisitor : DFSPluginVisitor
     {
         super.visit(e);
 
+        if (!e.isValid()) return;
+        if (!e.isResolved) return;
+
         visitExp(e.e1);
     }
 
-    private void visitExp(Expression e)
+    private void visitExp(DMD.Expression e)
     {
-        // lets skip invalid assignments
-        if (!isValid(e)) return;
+        if (e is null) return;
 
         auto t = e.type;
-        // skip for unknown types
         if (!t) return;
 
-        if (t.toBasetype().ty == TY.Tbool)
+        if (t.toBasetype().ty == DMD.Tbool)
         {
             warning(e.loc, "Avoid bitwise operations with boolean `%s`", e.toChars());
         }
     }
+
+    // avoid all sorts of false positives without semantics
+    override void visit(Querier!(DMD.TemplateDeclaration)) { /* skip */ }
 }
