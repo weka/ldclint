@@ -1820,6 +1820,15 @@ abstract class Visitor
             visit(cast(Querier!(DMD.Expression))n);
         }
 
+    static if (__VERSION__ >= 2108)
+    static foreach(T; AliasSeq!(
+        DMD.InterpExp,
+    ))
+        void visit (Querier!T n) {
+            mixin(aliasLevelMixin);
+            visit(cast(Querier!(DMD.Expression))n);
+        }
+
     static foreach(T; AliasSeq!(
         DMD.FileInitExp,
         DMD.FuncInitExp,
@@ -1868,6 +1877,16 @@ abstract class Visitor
         DMD.ShlAssignExp,
         DMD.XorAssignExp,
         DMD.OrAssignExp,
+    ))
+        void visit (Querier!T n) {
+            mixin(aliasLevelMixin);
+            visit(cast(Querier!(DMD.BinExp))n);
+        }
+
+    static if (__VERSION__ >= 2108)
+    static foreach(T; AliasSeq!(
+        DMD.CatElemAssignExp,
+        DMD.CatDcharAssignExp,
     ))
         void visit (Querier!T n) {
             mixin(aliasLevelMixin);
@@ -1932,6 +1951,11 @@ abstract class Visitor
         visit(cast(Querier!(DMD.FuncDeclaration))n);
     }
     void visit (Querier!(DMD.ErrorInitializer) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.Initializer))n);
+    }
+    static if (__VERSION__ >= 2108)
+    void visit (Querier!(DMD.DefaultInitializer) n) {
         mixin(aliasLevelMixin);
         visit(cast(Querier!(DMD.Initializer))n);
     }
