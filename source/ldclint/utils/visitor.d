@@ -2078,19 +2078,18 @@ abstract class Visitor
             visit(cast(Querier!(DMD.TypeNext))n);
         }
 
-    // nodes not yet implemented
-
+    // leaf expressions
     static foreach(T; AliasSeq!(
-        DMD.SharedStaticCtorDeclaration,
-        DMD.SharedStaticDtorDeclaration,
-        DMD.CPPNamespaceDeclaration,
-        DMD.StaticForeachDeclaration,
-        DMD.StaticIfDeclaration,
-        DMD.BitFieldDeclaration,
-        DMD.CompoundAsmStatement,
-        DMD.InlineAsmStatement,
         DMD.StringExp,
         DMD.DsymbolExp,
+    ))
+        void visit (Querier!T n) {
+            mixin(aliasLevelMixin);
+            visit(cast(Querier!(DMD.Expression))n);
+        }
+
+    // binary assign expressions
+    static foreach(T; AliasSeq!(
         DMD.AddAssignExp,
         DMD.MinAssignExp,
         DMD.MulAssignExp,
@@ -2098,16 +2097,73 @@ abstract class Visitor
         DMD.ModAssignExp,
         DMD.PowAssignExp,
         DMD.AndAssignExp,
-        DMD.VoidInitializer,
-        DMD.VersionCondition,
-        DMD.DebugCondition,
-        DMD.DVCondition,
-        DMD.TemplateTupleParameter,
     ))
-        void visit (Querier!T) {
-            mixin(incrementLevelMixin);
-            assert(0, format!"Visitor `visit(%s)` not yet implemented"(T.stringof));
+        void visit (Querier!T n) {
+            mixin(aliasLevelMixin);
+            visit(cast(Querier!(DMD.BinExp))n);
         }
+
+    // declaration subtypes
+    void visit (Querier!(DMD.SharedStaticCtorDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.StaticCtorDeclaration))n);
+    }
+    void visit (Querier!(DMD.SharedStaticDtorDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.StaticDtorDeclaration))n);
+    }
+    void visit (Querier!(DMD.CPPNamespaceDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.AttribDeclaration))n);
+    }
+    void visit (Querier!(DMD.StaticForeachDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.AttribDeclaration))n);
+    }
+    void visit (Querier!(DMD.StaticIfDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.ConditionalDeclaration))n);
+    }
+    void visit (Querier!(DMD.BitFieldDeclaration) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.VarDeclaration))n);
+    }
+
+    // statement subtypes
+    void visit (Querier!(DMD.CompoundAsmStatement) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.CompoundStatement))n);
+    }
+    void visit (Querier!(DMD.InlineAsmStatement) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.Statement))n);
+    }
+
+    // initializer subtypes
+    void visit (Querier!(DMD.VoidInitializer) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.Initializer))n);
+    }
+
+    // condition subtypes
+    void visit (Querier!(DMD.DVCondition) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.Condition))n);
+    }
+    void visit (Querier!(DMD.VersionCondition) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.DVCondition))n);
+    }
+    void visit (Querier!(DMD.DebugCondition) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.DVCondition))n);
+    }
+
+    // template parameter subtypes
+    void visit (Querier!(DMD.TemplateTupleParameter) n) {
+        mixin(aliasLevelMixin);
+        visit(cast(Querier!(DMD.TemplateParameter))n);
+    }
 
     // nodes that are skipped
 
