@@ -15,3 +15,56 @@ private enum MyEnum { a, b, c }
 // used private function
 private int helper(int x) { return x + 1; }
 int caller() { return helper(42); }
+
+struct Pos
+{
+    float x, y, z;
+
+    static auto staticPosImplicit1(int x, int y, int z)
+    {
+        float fx = x;
+        float fy = float(y);
+
+        return typeof(this)(fx, fy, float(z));
+    }
+
+    static auto staticPosImplicit2(int x, int y, int z)
+    {
+        float fx = x;
+        float fy = float(y);
+
+        return Pos(fx, fy, float(z));
+    }
+
+    static Pos staticPosExplicit1(int x, int y, int z)
+    {
+        float fx = x;
+        float fy = float(y);
+
+        return typeof(return)(fx, fy, float(z));
+    }
+
+    static Pos staticPosExplicit2(int x, int y, int z)
+    {
+        float fx = x;
+        float fy = float(y);
+
+        return Pos(fx, fy, float(z));
+    }
+}
+
+auto posImplicit(int x, int y, int z)
+{
+    float fx = x;
+    float fy = float(y);
+
+    return Pos(fx, fy, float(z));
+}
+
+Pos posExplicit(int x, int y, int z)
+{
+    float fx = x;
+    float fy = float(y);
+
+    return Pos(fx, fy, float(z));
+}

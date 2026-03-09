@@ -1376,6 +1376,16 @@ abstract class Visitor
         traverse(e.elements, e.basis);
     }
 
+    void visit(Querier!(DMD.StructLiteralExp) e)
+    {
+        // lets skip invalid nodes
+        if (!e.isValid()) { mixin(invalidReturnMixin); }
+
+        mixin(incrementLevelMixin);
+
+        traverse(e.elements);
+    }
+
     void visit(Querier!(DMD.AssocArrayLiteralExp) e)
     {
         // lets skip invalid nodes
@@ -1805,7 +1815,6 @@ abstract class Visitor
         DMD.ObjcClassReferenceExp,
         DMD.OverExp,
         DMD.RealExp,
-        DMD.StructLiteralExp,
         DMD.SymbolExp,
         DMD.TemplateExp,
         DMD.DefaultInitExp,
