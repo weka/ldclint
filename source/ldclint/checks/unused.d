@@ -24,6 +24,9 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         /// number of references of a symbol
         size_t[void*] refs;
 
+        /// unresolved identifiers encountered during traversal
+        void[0][const(char)[]] unresolvedIdents;
+
         void addRef(T)(T s)
             if (is(T : DMD.Dsymbol))
         {
@@ -74,6 +77,13 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
             auto sym = cast(DMD.Dsymbol)osym;
             assert(sym, "must be a Dsymbol");
+
+            // check for any unresolved identifiers
+            if (sym.ident && !sym.ident.isAnonymous())
+            {
+                if (sym.ident.toString() in context.unresolvedIdents)
+                    continue;
+            }
 
             string prefix;
             if (sym.isFuncDeclaration) prefix = "Function";
@@ -138,6 +148,22 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         super.visit(e);
 
         context.incrementRef(e.var);
+    }
+
+    /// Collect unresolved identifiers (e.g. inside uninstantiated templates)
+    /// for deferred matching against tracked symbols at reporting time.
+    override void visit(Querier!(DMD.IdentifierExp) e)
+    {
+        if (!e.isValid()) return;
+
+        super.visit(e);
+
+        if (e.ident && !e.ident.isAnonymous())
+        {
+            const(char)[] identStr = e.ident.toString();
+            if (identStr.length)
+                context.unresolvedIdents[identStr] = (void[0]).init;
+        }
     }
 
     override void visit(Querier!(DMD.Import) imp)

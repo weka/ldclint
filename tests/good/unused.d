@@ -68,3 +68,17 @@ Pos posExplicit(int x, int y, int z)
 
     return Pos(fx, fy, float(z));
 }
+
+private void someFunctionUsedInTemplate() {}
+
+void someTemplate()()
+{
+    someFunctionUsedInTemplate();
+}
+
+void someTemplate2()()
+{
+    someFunctionUsedInTemplate2();
+}
+
+private void someFunctionUsedInTemplate2() {}
