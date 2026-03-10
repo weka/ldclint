@@ -82,3 +82,36 @@ void someTemplate2()()
 }
 
 private void someFunctionUsedInTemplate2() {}
+
+struct Foo2
+{
+    int[] arr;
+    int[string] assoc;
+
+    void addItem(int item)
+    { arr ~= item; }
+
+    void addItems(int[] items)
+    {
+        foreach(item; items)
+            arr ~= item;
+    }
+
+    void addStaticForeachItems(int[] items)
+    {
+        import std.meta : AliasSeq;
+        enum DEFAULT_ITEM_IDXS = AliasSeq!(0, 2, 4);
+
+        foreach(i; DEFAULT_ITEM_IDXS)
+            arr[i] = items[i];
+    }
+
+    void changeItem(size_t index, int item)
+    { arr[index] = item; }
+
+    int getItem(size_t index)
+    { return arr[index]; }
+
+    void addAssoc(string key, int value)
+    { assoc[key] = value; }
+}

@@ -1984,12 +1984,25 @@ abstract class Visitor
         DMD.PeelStatement,
         DMD.StaticForeachStatement,
         DMD.SwitchErrorStatement,
-        DMD.UnrolledLoopStatement,
     ))
         void visit (Querier!T n) {
             mixin(aliasLevelMixin);
             visit(cast(Querier!(DMD.Statement))n);
         }
+
+    // UnrolledLoopStatement contains a statements array (e.g. from foreach over AliasSeq)
+    void visit(Querier!(DMD.UnrolledLoopStatement) s)
+    {
+        // lets skip invalid nodes
+        if (!s.isValid()) { mixin(invalidReturnMixin); }
+
+        mixin(incrementLevelMixin);
+
+        if (s.statements)
+            foreach (sx; *s.statements)
+                if (sx)
+                    sx.accept(dmdVisitorProxy);
+    }
 
     // nodes that are type infos
 
