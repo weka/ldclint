@@ -115,3 +115,27 @@ struct Foo2
     void addAssoc(string key, int value)
     { assoc[key] = value; }
 }
+
+struct Foo3
+{
+    void delegate() dg;
+    void function() fn;
+
+    private static void defaultFunction()
+    {
+        import std.stdio : writeln;
+        writeln("Default function called");
+    }
+
+    private void defaultDelegate()
+    {
+        import std.stdio : writeln;
+        writeln("Default delegate called");
+    }
+
+    void open()
+    {
+        dg = &defaultDelegate;
+        fn = &defaultFunction;
+    }
+}

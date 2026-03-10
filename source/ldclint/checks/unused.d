@@ -150,6 +150,15 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         context.incrementRef(e.var);
     }
 
+    override void visit(Querier!(DMD.DelegateExp) e)
+    {
+        if (!e.isValid()) return;
+
+        super.visit(e);
+
+        context.incrementRef(e.func);
+    }
+
     /// Collect unresolved identifiers (e.g. inside uninstantiated templates)
     /// for deferred matching against tracked symbols at reporting time.
     override void visit(Querier!(DMD.IdentifierExp) e)
