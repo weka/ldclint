@@ -167,9 +167,25 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
         super.visit(e);
 
-        if (e.ident && !e.ident.isAnonymous())
+        collectIdent(e.ident);
+    }
+
+    /// Collect the right-hand identifier from dot expressions (e.g. `some.defaultDelegate`
+    /// inside uninstantiated templates where DotIdExp is not resolved to DotVarExp).
+    override void visit(Querier!(DMD.DotIdExp) e)
+    {
+        if (!e.isValid()) return;
+
+        super.visit(e);
+
+        collectIdent(e.ident);
+    }
+
+    private void collectIdent(DMD.Identifier ident)
+    {
+        if (ident && !ident.isAnonymous())
         {
-            const(char)[] identStr = e.ident.toString();
+            const(char)[] identStr = ident.toString();
             if (identStr.length)
                 context.unresolvedIdents[identStr] = (void[0]).init;
         }

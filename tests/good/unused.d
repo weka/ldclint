@@ -139,3 +139,27 @@ struct Foo3
         fn = &defaultFunction;
     }
 }
+
+struct Foo4
+{
+    void delegate() dg;
+    void function() fn;
+
+    private static void defaultFunction()
+    {
+        import std.stdio : writeln;
+        writeln("Default function called");
+    }
+
+    private void defaultDelegate()
+    {
+        import std.stdio : writeln;
+        writeln("Default delegate called");
+    }
+
+    void open()(Foo4* some)
+    {
+        dg = &some.defaultDelegate;
+        fn = &some.defaultFunction;
+    }
+}
