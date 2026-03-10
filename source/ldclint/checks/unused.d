@@ -244,6 +244,16 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         context.addRef(vd);
     }
 
+    override void visit(Querier!(DMD.UnitTestDeclaration) d)
+    {
+        // UnitTestDeclaration is marked as generated, so isValid() returns
+        // false and the base visitor skips it entirely. We need to traverse
+        // the body so that references to private symbols are counted.
+        if (d.astNode is null) return;
+        if (d.fbody)
+            d.fbody.accept(dmdVisitorProxy);
+    }
+
     override void visit(Querier!(DMD.FuncDeclaration) fd)
     {
         // lets skip invalid functions
