@@ -106,4 +106,5 @@ mixin plugin!(
     imported!"ldclint.checks.coherence",
     imported!"ldclint.checks.fortify",
     imported!"ldclint.checks.ctags",
+    imported!"ldclint.checks.destroy_ptr",
 );
