@@ -112,4 +112,5 @@ mixin plugin!(
     imported!"ldclint.checks.builtin_property",
     imported!"ldclint.checks.public_import",
     imported!"ldclint.checks.erroneous_promotion",
+    imported!"ldclint.checks.import_sorting",
 );
