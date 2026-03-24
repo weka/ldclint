@@ -108,5 +108,6 @@ mixin plugin!(
     imported!"ldclint.checks.ctags",
     imported!"ldclint.checks.destroy_ptr",
     imported!"ldclint.checks.negate_unsigned",
+    imported!"ldclint.checks.builtin_property",
     imported!"ldclint.checks.erroneous_promotion",
 );
