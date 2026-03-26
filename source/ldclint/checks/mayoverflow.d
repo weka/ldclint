@@ -31,6 +31,37 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             visitCasted(querier(mule), querier(e.to));
     }
 
+    override void visit(Querier!(DMD.NegExp) e)
+    {
+        // traverse through the AST
+        super.visit(e);
+
+        // lets skip invalid vars
+        if (!e.isValid()) return;
+
+        // skip unresolved variables
+        if (!e.isResolved) return;
+
+        // skip invalid inner expressions
+        if (!e.inner.isValid()) return;
+        // skip inner expressions with invalid types
+        if (!e.inner.type.isValid()) return;
+
+        auto bt = e.inner.type.baseType();
+        if (!bt.isValid()) return;
+
+        auto isUnsigned = bt.isUnsignedType();
+        if (!isUnsigned.resolved) return;
+
+        if (isUnsigned.get)
+        {
+            // skip compile-time literals (e.g. -1u is a common pattern)
+            if (e.inner.isIntegerExp()) return;
+
+            warning(e.loc, "Negating unsigned integer of type `%s`", bt.toChars());
+        }
+    }
+
     private void visitCasted(Querier!(DMD.MulExp) e, Querier!(DMD.Type) type)
     {
         // lets skip invalid assignments

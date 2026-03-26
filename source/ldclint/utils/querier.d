@@ -459,6 +459,8 @@ struct Querier(T)
     static if (is(T : DMD.UnaExp))
     {
         auto e1() { return querier(astNode.e1); }
+
+        alias inner = e1;
     }
 
     static if (is(T : DMD.BinExp))

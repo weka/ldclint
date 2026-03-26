@@ -16,3 +16,9 @@ long  mul4(int    val) { return val * -1234; }
 real  mul5(float  val) { return val * 1234.0f; }
 // CHECK-DAG: overflow.d(18): Warning: Expression `val * -1234.0` may overflow before conversion
 real  mul6(double val) { return val * -1234.0; }
+
+uint foo(uint a)
+{
+    // CHECK-DAG: overflow.d(23): Warning: Negating unsigned integer
+    return -a;
+}
