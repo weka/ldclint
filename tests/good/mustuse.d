@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wthrowable-return" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wmustuse" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 class MyException : Exception
 {

@@ -1,4 +1,4 @@
-module ldclint.checks.throwable_return;
+module ldclint.checks.mustuse;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;
@@ -8,8 +8,8 @@ import DMD = ldclint.dmd;
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
-    "throwable-return",
-    No.byDefault,
+    "mustuse",
+    Yes.byDefault,
 );
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
