@@ -77,6 +77,27 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         }
     }
 
+    override void visit(Querier!(DMD.IfStatement) s)
+    {
+        if (!s.isValid()) return;
+
+        super.visit(s);
+
+        bool bodyEmpty = s.body.isEmpty();
+
+        if (auto es = s.elseBody())
+        {
+            if (es.isEmpty())
+                warning(s.elsebody.loc, "Empty `else` body; consider removing the `else` clause");
+            else if (bodyEmpty)
+                warning(s.loc, "Empty `if` body with non-empty `else`; consider negating the condition");
+            else return;
+        }
+
+        if (bodyEmpty)
+            warning(s.loc, "Empty `if` body with no `else`; consider removing the statement");
+    }
+
     // avoid all sorts of false positives without semantics
     override void visit(Querier!(DMD.TemplateDeclaration) /* td */) { /* skip */ }
 }

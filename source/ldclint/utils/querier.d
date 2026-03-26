@@ -7,6 +7,7 @@ import ldclint.utils.location;
 public import dmd.target : target;
 
 import std.traits;
+import std.typecons;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -300,6 +301,50 @@ struct Querier(T)
         {
             if (!isResolved) return typeof(return).init;
             return typeof(return)(astNode.hasCopyCtor);
+        }
+    }
+
+    static if (is(T : DMD.IfStatement))
+    {
+        auto body() { return querier(astNode.ifbody); }
+        auto elseBody() { return querier(astNode.elsebody); }
+    }
+
+    static if (is(T : DMD.ScopeStatement))
+    {
+        auto statement() { return querier(astNode.statement); }
+    }
+
+    static if (is(T : DMD.Statement))
+    {
+        auto isScopeStatement() { return querier(astNode.isScopeStatement()); }
+        auto isCompoundStatement() { return querier(astNode.isCompoundStatement()); }
+
+        bool isEmpty(Flag!"recursive" recursive = No.recursive)
+        {
+            if (!isValid()) return true;
+
+            if (auto ss = this.isScopeStatement())
+                return ss.statement.isEmpty(recursive);
+
+            if (auto cs = this.isCompoundStatement())
+            {
+                if (cs.statements is null)
+                    return true;
+
+                if ((*cs.statements).length == 0)
+                    return true;
+
+                if (!recursive) return false;
+
+                foreach(st; *cs.statements)
+                    if (!querier(st).isEmpty(Yes.recursive))
+                        return false;
+
+                return true;
+            }
+
+            return false;
         }
     }
 
