@@ -1,4 +1,4 @@
-module ldclint.checks.destroy_ptr;
+module ldclint.checks.misuse;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;
@@ -8,8 +8,8 @@ import DMD = ldclint.dmd;
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
-    "destroy-ptr",
-    No.byDefault,
+    "misuse",
+    Yes.byDefault,
 );
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata

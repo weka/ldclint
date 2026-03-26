@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wdestroy-ptr" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wmisuse" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 struct S { int x; }
 
