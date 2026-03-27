@@ -33,3 +33,10 @@ int foo(int p1)
 
     return cast(int)ret + ret2;
 }
+
+// CHECK-DAG: redundant.d(38): Warning: Empty `if` body with no `else`
+void emptyIf(bool c) { if (c) {} }
+// CHECK-DAG: redundant.d(40): Warning: Empty `else` body
+void emptyElse(bool c) { if (c) { return; } else {} }
+// CHECK-DAG: redundant.d(42): Warning: Empty `if` body with non-empty `else`
+void emptyIfWithElse(bool c) { if (c) {} else { return; } }

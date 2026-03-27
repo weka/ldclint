@@ -28,3 +28,22 @@ int foo(int p1, int p2)
 
     return ret + p1 + acc;
 }
+
+// empty blocks with comments should not warn
+void commentedIf(bool c)
+{
+    if (c) { // intentionally empty
+    }
+}
+
+void commentedElse(bool c)
+{
+    if (c) { return; } else { /* TODO */ }
+}
+
+void commentedIfWithElse(bool c)
+{
+    if (c) {
+        // TODO: handle this case
+    } else { return; }
+}
