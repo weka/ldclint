@@ -16,6 +16,35 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
     alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
+    private uint insideAndNegPattern;
+
+    override void visit(Querier!(DMD.AndExp) e)
+    {
+        // Detect var & -var or -var & var pattern (isolate lowest set bit)
+        bool matched;
+
+        if (auto neg = e.e2.isNegExp())
+        {
+            if (auto v1 = e.e1.isVarExp())
+                if (auto v2 = neg.e1.isVarExp())
+                    matched = v1.var is v2.var;
+        }
+        else if (auto neg = e.e1.isNegExp())
+        {
+            if (auto v1 = e.e2.isVarExp())
+                if (auto v2 = neg.e1.isVarExp())
+                    matched = v1.var is v2.var;
+        }
+
+        if (matched)
+            insideAndNegPattern++;
+
+        super.visit(e);
+
+        if (matched)
+            insideAndNegPattern--;
+    }
+
     override void visit(Querier!(DMD.CastExp) e)
     {
         // traverse through the AST
@@ -58,7 +87,11 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             // skip compile-time literals (e.g. -1u is a common pattern)
             if (e.inner.isIntegerExp()) return;
 
-            warning(e.loc, "Negating unsigned integer of type `%s`", bt.toChars());
+            // skip var & -var pattern (bit manipulation: isolate lowest set bit)
+            if (insideAndNegPattern > 0) return;
+
+            warning(e.loc, "Negating unsigned integer of type `%s`: replace `-%s` with `(~%s) + 1`",
+                bt.toChars(), e.inner.toChars(), e.inner.toChars());
         }
     }
 

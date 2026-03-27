@@ -19,6 +19,6 @@ real  mul6(double val) { return val * -1234.0; }
 
 uint foo(uint a)
 {
-    // CHECK-DAG: overflow.d(23): Warning: Negating unsigned integer
+    // CHECK-DAG: overflow.d(23): Warning: Negating unsigned integer of type `uint`: replace `-a` with `(~a) + 1`
     return -a;
 }

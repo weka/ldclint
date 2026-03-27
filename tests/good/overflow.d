@@ -28,3 +28,9 @@ uint baz(uint a)
 {
     return cast(uint)-cast(int)a;
 }
+
+// var & -var is fine (bit manipulation: isolate lowest set bit)
+uint lowestBit(uint a)
+{
+    return a & -a;
+}
