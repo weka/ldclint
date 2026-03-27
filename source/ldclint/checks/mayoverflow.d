@@ -9,7 +9,7 @@ import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
     "mayoverflow",
-    No.byDefault,
+    Yes.byDefault,
 );
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
