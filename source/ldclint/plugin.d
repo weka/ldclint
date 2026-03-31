@@ -113,4 +113,5 @@ mixin plugin!(
     imported!"ldclint.checks.import_sorting",
     imported!"ldclint.checks.inner_struct_static",
     imported!"ldclint.checks.mustuse",
+    imported!"ldclint.checks.enum_conv",
 );
