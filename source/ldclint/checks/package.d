@@ -5,6 +5,9 @@ import ldclint.utils.querier;
 
 import std.typecons;
 
+import DMD    = ldclint.dmd;
+import DParse = ldclint.dparse;
+
 struct Metadata
 {
     /// name of the check
@@ -27,29 +30,18 @@ struct Metadata
     ubyte priority = 0;
 }
 
-class GenericCheck(Metadata _metadata) : Visitor
+class AbstractCheck : Visitor
 {
-    enum Metadata metadata = _metadata;
-
-    import DMD    = ldclint.dmd;
-    import DParse = ldclint.dparse;
-
     ///
     alias visit = Visitor.visit;
 
     /// module currently visiting
     DMD.Module currentModule = null;
 
-    /// if it has semantics or not
-    Flag!"hasSemantics" hasSemantics = No.hasSemantics;
-
     override void visit (Querier!(DMD.Module) m)
     {
         // lets skip invalid modules
         if (!m.isValid()) return;
-
-        // lets skip this module if we are already visiting one
-        if (!metadata.allModules && currentModule !is null) return;
 
         auto prevMod = this.currentModule;
 
@@ -111,4 +103,46 @@ class GenericCheck(Metadata _metadata) : Visitor
     override void visit(Querier!(DMD.Parameter))          { /* skip */ }
     override void visit(Querier!(DMD.TemplateParameter))  { /* skip */ }
     override void visit(Querier!(DMD.Condition))          { /* skip */ }
+}
+
+struct CheckInfo {
+    /// class info of the check
+    ClassInfo classInfo;
+    /// metadata of the check
+    Metadata metadata;
+}
+
+class GenericCheck(Metadata metadata) : AbstractCheck
+{
+    ///
+    alias visit = AbstractCheck.visit;
+
+    override void visit (Querier!(DMD.Module) m)
+    {
+        // lets skip invalid modules
+        if (!m.isValid()) return;
+
+        // lets skip this module if we are already visiting one
+        if (!metadata.allModules && currentModule !is null) return;
+
+        super.visit(m);
+    }
+}
+
+mixin template RegisterCheck(Metadata metadata)
+{
+    import ldclint.checks : CheckInfo;
+    import ldc.attributes : section, assumeUsed;
+
+    @assumeUsed @section("ldclint_checks") align(1)
+    __gshared CheckInfo info = CheckInfo(
+        typeid(typeof(this)),
+        metadata,
+    );
+}
+
+CheckInfo[] allChecks()
+{
+    import ldclint.utils.sections : sectionSlice;
+    return cast(CheckInfo[])sectionSlice!"ldclint_checks"();
 }

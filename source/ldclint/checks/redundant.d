@@ -18,6 +18,8 @@ enum Metadata = imported!"ldclint.checks".Metadata(
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
+    mixin imported!"ldclint.checks".RegisterCheck!Metadata;
+
     alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
     override void visit(Querier!(DMD.VarDeclaration) vd)

@@ -14,6 +14,8 @@ enum Metadata = imported!"ldclint.checks".Metadata(
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 {
+    mixin imported!"ldclint.checks".RegisterCheck!Metadata;
+
     alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
     /// Track VisibilityDeclaration locations to detect block-style public:
