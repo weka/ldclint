@@ -18,6 +18,28 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
     alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
 
+    private DMD.FuncDeclaration currentFunc;
+
+    override void visit(Querier!(DMD.FuncDeclaration) fd)
+    {
+        if (!fd.isValid()) return;
+
+        auto prev = this.currentFunc;
+        this.currentFunc = fd.astNode;
+        scope(exit) this.currentFunc = prev;
+
+        super.visit(fd);
+    }
+
+    override void visit(Querier!(DMD.FuncLiteralDeclaration) fd)
+    {
+        auto prev = this.currentFunc;
+        this.currentFunc = fd.astNode;
+        scope(exit) this.currentFunc = prev;
+
+        super.visit(fd);
+    }
+
     override void visit(Querier!(DMD.CondExp) e)
     {
         super.visit(e);
@@ -25,32 +47,76 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         if (!e.isValid()) return;
         if (!e.isResolved()) return;
 
-        auto t1 = getEnumType(cast(DMD.Expression) e.e1);
-        auto t2 = getEnumType(cast(DMD.Expression) e.e2);
+        auto t1 = getOriginalType(cast(DMD.Expression) e.e1);
+        auto t2 = getOriginalType(cast(DMD.Expression) e.e2);
 
         if (t1 is null || t2 is null) return;
-        if (t1.sym is t2.sym) return;
+
+        // At least one must be an enum
+        auto te1 = t1.isTypeEnum();
+        auto te2 = t2.isTypeEnum();
+        if (te1 is null && te2 is null) return;
+
+        // Same enum type is fine
+        if (te1 !is null && te2 !is null && te1.sym is te2.sym) return;
 
         warning(e.loc,
-            "Implicit conversion merges different enum types `%s` and `%s`",
-            t1.sym.toChars(), t2.sym.toChars());
+            "Implicit conversion merges different types `%s` and `%s`",
+            t1.toChars(), t2.toChars());
     }
 
-    private static DMD.TypeEnum getEnumType(DMD.Expression e)
+    override void visit(Querier!(DMD.ReturnStatement) rs)
+    {
+        super.visit(rs);
+
+        if (!rs.isValid()) return;
+        if (currentFunc is null) return;
+
+        auto exp = rs.exp;
+        if (exp is null) return;
+
+        auto ft = currentFunc.type;
+        if (ft is null) return;
+        auto retType = ft.nextOf();
+        if (retType is null) return;
+
+        // DMD modifies the expression's type in-place for implicit return
+        // conversions, so check the variable's declared type instead.
+        DMD.Type expType;
+        if (auto ve = exp.isVarExp())
+            if (ve.var)
+                expType = ve.var.type;
+        if (expType is null)
+            expType = exp.type;
+        if (expType is null) return;
+
+        // At least one must be an enum
+        auto retEnum = retType.isTypeEnum();
+        auto expEnum = expType.isTypeEnum();
+        if (retEnum is null && expEnum is null) return;
+
+        // Same enum type is fine
+        if (retEnum !is null && expEnum !is null && retEnum.sym is expEnum.sym) return;
+
+        warning(rs.loc,
+            "Implicit conversion merges different types `%s` and `%s`",
+            expType.toChars(), retType.toChars());
+    }
+
+    /// Get the original type of an expression, unwrapping implicit CastExp
+    /// inserted by typeMerge to recover the pre-conversion type.
+    private static DMD.Type getOriginalType(DMD.Expression e)
     {
         if (e is null) return null;
 
-        auto t = e.type;
-        if (t is null) return null;
-
-        if (auto te = t.isTypeEnum())
-            return te;
-
         // If typeMerge already lowered, unwrap CastExp to get original type
         if (auto ce = e.isCastExp())
-            return getEnumType(ce.e1);
+        {
+            auto inner = getOriginalType(ce.e1);
+            if (inner !is null) return inner;
+        }
 
-        return null;
+        return e.type;
     }
 
     // avoid false positives inside uninstantiated templates
