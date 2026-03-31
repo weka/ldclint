@@ -11,6 +11,7 @@ import std.bitmanip;
 enum Metadata = imported!"ldclint.checks".Metadata(
     "unused",
     No.byDefault,
+    [/* no parameters */],
     Yes.allModules,
     100 /* priority */,
 );

@@ -2,6 +2,7 @@ module ldclint.checks.stack;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;
+import ldclint.checks;
 
 import DMD = ldclint.dmd;
 
@@ -10,6 +11,7 @@ import std.typecons : No, Yes, Flag;
 enum Metadata = imported!"ldclint.checks".Metadata(
     "stack",
     No.byDefault,
+    [ Parameter("size", Parameter.Type.integer, 256) ],
 );
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
@@ -17,8 +19,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
     mixin imported!"ldclint.checks".RegisterCheck!Metadata;
 
     alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
-
-    enum size_t maxVariableStackSize = 256;
 
     DMD.ScopeTracker scopeTracker;
 
@@ -74,9 +74,9 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
         auto sz = rsz.get;
 
-        if (sz != size_t.max && sz > maxVariableStackSize)
+        if (sz != size_t.max && sz > this.size)
         {
-            warning(vd.loc, "Stack variable `%s` is big (size: %lu, limit: %lu)", vd.toChars(), sz, maxVariableStackSize);
+            warning(vd.loc, "Stack variable `%s` is big (size: %lu, limit: %lu)", vd.toChars(), sz, this.size);
         }
     }
 

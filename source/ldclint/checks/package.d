@@ -8,6 +8,40 @@ import std.typecons;
 import DMD    = ldclint.dmd;
 import DParse = ldclint.dparse;
 
+struct Parameter
+{
+    import std.sumtype : SumType;
+    alias Value = SumType!(string, real, long, bool);
+
+    enum Type
+    {
+        string,
+        number,
+        integer,
+        boolean,
+    }
+
+    string name;
+    Type type;
+    Nullable!Value defaultValue;
+
+    this(string name, Type type)
+    {
+        this.name = name;
+        this.type = type;
+    }
+
+    static foreach(T; Value.Types)
+    {
+        this(string name, Type type, T defaultValue)
+        {
+            this.name = name;
+            this.type = type;
+            this.defaultValue = nullable(Value(defaultValue));
+        }
+    }
+}
+
 struct Metadata
 {
     /// name of the check
@@ -22,6 +56,9 @@ struct Metadata
 
     /// check runs by default
     Flag!"byDefault" byDefault;
+
+    /// parameters fo the check
+    Parameter[] parameters = [];
 
     /// check runs on all modules
     Flag!"allModules" allModules = No.allModules;
@@ -116,6 +153,34 @@ class GenericCheck(Metadata metadata) : AbstractCheck
 {
     ///
     alias visit = AbstractCheck.visit;
+
+    static foreach(param; metadata.parameters)
+    {
+        static auto getParameter(string name : param.name)()
+        {
+            static if(param.type == Parameter.Type.string) alias T = string;
+            else static if(param.type == Parameter.Type.number) alias T = real;
+            else static if(param.type == Parameter.Type.integer) alias T = long;
+            else static if(param.type == Parameter.Type.boolean) alias T = bool;
+            else static assert(0, "unsupported parameter type");
+
+            __gshared Nullable!T value;
+
+            if (value.isNull)
+            {
+                import ldclint.options : options;
+                import std.sumtype : match;
+                value = options.getParameters(metadata.name)[param.name].match!(
+                    (T v) => nullable(v),
+                    (_) => assert(0),
+                );
+            }
+
+            return value.get;
+        }
+
+        mixin("alias ", param.name, " = getParameter!\"", param.name, "\";");
+    }
 
     override void visit (Querier!(DMD.Module) m)
     {

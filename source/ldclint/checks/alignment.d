@@ -10,6 +10,7 @@ import std.typecons : No, Yes, Flag;
 enum Metadata = imported!"ldclint.checks".Metadata(
     "alignment",
     Yes.byDefault,
+    [/* no parameters */],
     Yes.allModules,
     100 /* priority */,
 );

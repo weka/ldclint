@@ -1,190 +1,206 @@
 module ldclint.options;
 
-import std.exception;
-import std.process;
-import std.array;
-import std.string;
-import std.algorithm;
-import std.typecons;
-import std.conv : to;
+import ldclint.checks;
+
+import std.typecons : Flag, Yes, No;
 
 class InvalidOptionsException : Exception
 {
     ///
-    mixin basicExceptionCtors;
+    mixin imported!"std.exception".basicExceptionCtors;
 }
 
 struct Options
 {
-    /// whether to run alignment checks
-    bool alignmentCheck = true;
+    private bool[string] enabled;
+    private Parameter.Value[string][string] params;
+    private CheckInfo[string] infoByName;
+    private bool initialized;
+    private bool parsed;
 
-    /// whether to run unused check
-    bool unusedCheck = true;
-
-    /// whether to run the struct dtor/postblit check
-    bool structDtorPostblitCheck = true;
-
-    /// whether to run parser checks
-    bool parserCheck = true;
-
-    /// whether to warn about @property usage
-    bool atPropertyCheck = false;
-
-    /// whether to warn about maybe overflow operations
-    bool mayOverflowCheck = false;
-
-    /// whether to warn about boolean bitwise operations
-    bool boolBitwiseCheck = true;
-
-    /// whether to warn about redundancy
-    bool redundantCheck = true;
-
-    /// whether to warn about stack polution (huge variables, ...)
-    bool stackCheck = true;
-
-    /// whether to warn about forward references being present
-    bool coherenceCheck = true;
-
-    /// max variable stack size;
-    size_t maxVariableStackSize = 256;
-
-    /// debug plugin (dummy AST traversal, ...)
-    bool debug_ = false;
-
-    /// exclude matchers
-    string[] excludes;
-}
-
-void setAll(ref Options options, bool value)
-{
-    static foreach(i, _; Options.tupleof)
+    void initialize()
     {
-        static if (is(typeof(_) == bool) && __traits(identifier, options.tupleof[i]).endsWith("Check"))
-            options.tupleof[i] = value;
-    }
-}
+        if (initialized) return;
+        scope(success) initialized = true;
 
-void tryParseOptions(out Options options)
-{
-    auto args = environment.get("LDCLINT_FLAGS", null).splitter();
-
-    string popFrontArg()
-    {
-        bool onquotes;
-        bool escape;
-        Appender!string arg;
-
-        while(!args.empty)
+        foreach (ref info; allChecks())
         {
-            auto cur = args.front;
-            args.popFront();
+            infoByName[info.metadata.name] = info;
+            enabled[info.metadata.name] = info.metadata.byDefault == Yes.byDefault;
+        }
+    }
 
-            if (escape)
+    bool isEnabled(string name)
+        in(parsed)
+    {
+        if (auto p = name in enabled)
+            return *p;
+        return false;
+    }
+
+    Parameter.Value[string] getParameters(string name)
+        in(parsed)
+    {
+        if (auto p = name in params)
+            return *p;
+        return null;
+    }
+
+    void parse(string[] args)
+        in(initialized)
+    {
+        scope(success) parsed = true;
+
+        import std.string : strip, indexOf;
+
+        foreach (arg; args)
+        {
+            auto a = arg.strip();
+
+            if (a == "-Wall")
             {
-                arg ~= ' ';
-                escape = false;
+                foreach (key; enabled.keys)
+                    enabled[key] = true;
             }
-
-            while (!cur.empty)
+            else if (a == "-Wno-all")
             {
-                auto c = cur.front;
-                cur.popFront();
+                foreach (key; enabled.keys)
+                    enabled[key] = false;
+            }
+            else if (a.length > 5 && a[0 .. 5] == "-Wno-")
+            {
+                auto name = a[5 .. $];
+                if (name !in enabled)
+                    throw new InvalidOptionsException("unknown check: " ~ name);
+                enabled[name] = false;
+            }
+            else if (a.length > 2 && a[0 .. 2] == "-W")
+            {
+                auto rest = a[2 .. $];
+                auto eqIdx = rest.indexOf('=');
 
-                if (escape)
+                if (eqIdx < 0)
                 {
-                    arg ~= c;
-                    escape = false;
-                    continue;
+                    // Simple: -Wcheck
+                    if (rest !in enabled)
+                        throw new InvalidOptionsException("unknown check: " ~ rest);
+                    enabled[rest] = true;
                 }
-
-                switch(c)
+                else
                 {
-                    case '\\':
-                        escape = true;
-                        continue;
-                    case '"':
-                        onquotes = !onquotes;
-                        break;
-                    default:
-                        arg ~= c;
-                        break;
+                    // Parameterized: -Wcheck=param1=x,flag1,param2=y
+                    auto name = rest[0 .. eqIdx];
+                    if (name !in enabled)
+                        throw new InvalidOptionsException("unknown check: " ~ name);
+                    enabled[name] = true;
+                    parseParams(name, rest[eqIdx + 1 .. $]);
                 }
             }
-
-            if (!onquotes)
-                break;
         }
 
-        if (escape)
-            throw new InvalidOptionsException("unterminated escape");
-
-        if (onquotes)
-            throw new InvalidOptionsException("unterminated doublequotes");
-
-        return arg[];
+        validate();
     }
 
-    while(!args.empty)
+    private void parseParams(string name, string paramStr)
     {
-        auto arg = popFrontArg();
+        import std.string : indexOf;
+        import std.algorithm.iteration : splitter;
 
-        string getArgParam()
+        auto meta = infoByName[name].metadata;
+
+        foreach (param; paramStr.splitter(','))
         {
-            if (args.empty)
-                throw new InvalidOptionsException("expected an argument parameter for: " ~ arg);
-            return popFrontArg();
+            auto eqIdx = param.indexOf('=');
+            if (eqIdx < 0)
+            {
+                // Flag: treat as key=true
+                if (param.length > 0)
+                {
+                    auto paramMeta = findParam(meta.parameters, param);
+                    if (paramMeta is null)
+                        throw new InvalidOptionsException(
+                            "-W" ~ name ~ ": unknown parameter '" ~ param ~ "'");
+                    if (paramMeta.type != Parameter.Type.boolean)
+                        throw new InvalidOptionsException(
+                            "-W" ~ name ~ ": parameter '" ~ param ~ "' is not a boolean flag");
+                    params[name][param] = Parameter.Value(true);
+                }
+            }
+            else
+            {
+                // Key=value
+                auto key = param[0 .. eqIdx];
+                auto value = param[eqIdx + 1 .. $];
+                if (key.length > 0)
+                {
+                    auto paramMeta = findParam(meta.parameters, key);
+                    if (paramMeta is null)
+                        throw new InvalidOptionsException(
+                            "-W" ~ name ~ ": unknown parameter '" ~ key ~ "'");
+                    params[name][key] = convertValue(*paramMeta, value);
+                }
+            }
         }
+    }
 
-        switch(arg)
+    private void validate()
+    {
+        foreach (name, isEnabled; enabled)
         {
-            case "--debug": options.debug_ = true;  break;
+            if (!isEnabled) continue;
 
-            case "-Wall":    options.setAll(true);  break;
-            case "-Wno-all": options.setAll(false); break;
+            auto meta = infoByName[name].metadata;
+            auto checkParams = &params.require(name, (Parameter.Value[string]).init);
 
-            case "-Walignment":    options.alignmentCheck = true; break;
-            case "-Wno-alignment": options.alignmentCheck = false; break;
+            // Check required params are present
+            foreach (ref p; meta.parameters)
+            {
+                if (p.name !in *checkParams)
+                {
+                    if (p.defaultValue.isNull)
+                        throw new InvalidOptionsException(
+                            "-W" ~ name ~ ": missing required parameter '" ~ p.name ~ "'");
+                    (*checkParams)[p.name] = p.defaultValue.get;
+                }
+            }
+        }
+    }
 
-            case "-Wunused":    options.unusedCheck = true;  break;
-            case "-Wno-unused": options.unusedCheck = false; break;
+    private static const(Parameter)* findParam(const Parameter[] parameters, string name)
+    {
+        foreach (ref p; parameters)
+            if (p.name == name)
+                return &p;
+        return null;
+    }
 
-            case "-Wmayoverflow":    options.mayOverflowCheck = true;  break;
-            case "-Wno-mayoverflow": options.mayOverflowCheck = false; break;
+    private static Parameter.Value convertValue(ref const Parameter p, string value)
+    {
+        import std.conv : to, ConvException;
 
-            case "-Wboolbitwise":    options.boolBitwiseCheck = true;  break;
-            case "-Wno-boolbitwise": options.boolBitwiseCheck = false; break;
-
-            case "-Wparser":    options.parserCheck = true;  break;
-            case "-Wno-parser": options.parserCheck = false; break;
-
-            case "-Wstruct-dtorpostblit":    options.structDtorPostblitCheck = true;  break;
-            case "-Wno-struct-dtorpostblit": options.structDtorPostblitCheck = false; break;
-
-            case "-Watproperty":    options.atPropertyCheck = true;  break;
-            case "-wno-atproperty": options.atPropertyCheck = false; break;
-
-            case "-Wredundant":    options.redundantCheck = true;  break;
-            case "-Wno-redundant": options.redundantCheck = false; break;
-
-            case "-Wstack":        options.stackCheck = true;  break;
-            case "-Wno-stack":     options.stackCheck = false; break;
-
-            case "-Wcoherence":    options.coherenceCheck = true; break;
-            case "-Wno-coherence": options.coherenceCheck = false; break;
-
-            case "--exclude":
-                auto argParam = getArgParam();
-                options.excludes ~= argParam;
-                break;
-
-            case "--max-var-stack-size":
-                auto argParam = getArgParam();
-                options.maxVariableStackSize = argParam.to!size_t;
-                break;
-
-            default:
-                throw new InvalidOptionsException("unknown argument: " ~ arg);
+        final switch (p.type)
+        {
+            case Parameter.Type.string:
+                return Parameter.Value(value);
+            case Parameter.Type.boolean:
+                if (value != "true" && value != "false")
+                    throw new InvalidOptionsException(
+                        "parameter '" ~ p.name ~ "': expected 'true' or 'false', got '" ~ value ~ "'");
+                return Parameter.Value(value == "true");
+            case Parameter.Type.integer:
+                try
+                    return Parameter.Value(value.to!long);
+                catch (ConvException)
+                    throw new InvalidOptionsException(
+                        "parameter '" ~ p.name ~ "': expected integer, got '" ~ value ~ "'");
+            case Parameter.Type.number:
+                try
+                    return Parameter.Value(value.to!real);
+                catch (ConvException)
+                    throw new InvalidOptionsException(
+                        "parameter '" ~ p.name ~ "': expected number, got '" ~ value ~ "'");
         }
     }
 }
+
+__gshared Options options;

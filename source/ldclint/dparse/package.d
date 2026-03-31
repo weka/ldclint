@@ -1,6 +1,5 @@
 module ldclint.dparse;
 
-import ldclint.options;
 import ldclint.utils.report;
 
 import dparse.rollback_allocator : RollbackAllocator;
