@@ -23,5 +23,15 @@ docs/
 # Code coverage
 *.lst
 
+# default build folder
+/builddir
+
+# possible ldc sources
+/ldc
+/ldc2
+/ldc-src
+/ldc2-src
+
 # Lit
 .lit_test_times.txt
+tests/*/Output/*
