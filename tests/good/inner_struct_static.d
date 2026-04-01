@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Winner-struct-static" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wexplicit-static" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // top-level struct should not warn
 struct TopLevel

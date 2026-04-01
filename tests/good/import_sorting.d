@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wimport-sorting" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wimport-sort" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // sorted imports should not warn
 import std.conv;

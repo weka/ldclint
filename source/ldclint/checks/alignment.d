@@ -8,7 +8,8 @@ import DMD = ldclint.dmd;
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
-    "alignment",
+    "gc",
+    "align",
     Yes.byDefault,
     [/* no parameters */],
     Yes.allModules,

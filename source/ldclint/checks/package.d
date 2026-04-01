@@ -44,20 +44,22 @@ struct Parameter
 
 struct Metadata
 {
+    /// group of the check (null if ungrouped)
+    string group;
     /// name of the check
     string name;
 
     @safe pure
-    string varName() const scope
+    string fullName() const scope
     {
-        import std.array : replace;
-        return name.replace("-", "_");
+        if (group is null) return name;
+        return group ~ "-" ~ name;
     }
 
     /// check runs by default
     Flag!"byDefault" byDefault;
 
-    /// parameters fo the check
+    /// parameters of the check
     Parameter[] parameters = [];
 
     /// check runs on all modules
@@ -170,7 +172,7 @@ class GenericCheck(Metadata metadata) : AbstractCheck
             {
                 import ldclint.options : options;
                 import std.sumtype : match;
-                value = options.getParameters(metadata.name)[param.name].match!(
+                value = options.getParameters(metadata.fullName)[param.name].match!(
                     (T v) => nullable(v),
                     (_) => assert(0),
                 );

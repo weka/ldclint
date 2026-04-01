@@ -15,6 +15,7 @@ struct Options
     private bool[string] enabled;
     private Parameter.Value[string][string] params;
     private CheckInfo[string] infoByName;
+    private string[][string] groups;
     private bool initialized;
     private bool parsed;
 
@@ -25,8 +26,12 @@ struct Options
 
         foreach (ref info; allChecks())
         {
-            infoByName[info.metadata.name] = info;
-            enabled[info.metadata.name] = info.metadata.byDefault == Yes.byDefault;
+            auto fullName = info.metadata.fullName;
+            infoByName[fullName] = info;
+            enabled[fullName] = info.metadata.byDefault == Yes.byDefault;
+
+            if (info.metadata.group !is null)
+                groups.require(info.metadata.group) ~= fullName;
         }
     }
 
@@ -70,9 +75,17 @@ struct Options
             else if (a.length > 5 && a[0 .. 5] == "-Wno-")
             {
                 auto name = a[5 .. $];
-                if (name !in enabled)
+                if (name in enabled)
+                {
+                    enabled[name] = false;
+                }
+                else if (auto grp = name in groups)
+                {
+                    foreach (fullName; *grp)
+                        enabled[fullName] = false;
+                }
+                else
                     throw new InvalidOptionsException("unknown check: " ~ name);
-                enabled[name] = false;
             }
             else if (a.length > 2 && a[0 .. 2] == "-W")
             {
@@ -82,9 +95,17 @@ struct Options
                 if (eqIdx < 0)
                 {
                     // Simple: -Wcheck
-                    if (rest !in enabled)
+                    if (rest in enabled)
+                    {
+                        enabled[rest] = true;
+                    }
+                    else if (auto grp = rest in groups)
+                    {
+                        foreach (fullName; *grp)
+                            enabled[fullName] = true;
+                    }
+                    else
                         throw new InvalidOptionsException("unknown check: " ~ rest);
-                    enabled[rest] = true;
                 }
                 else
                 {

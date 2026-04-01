@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wbuiltin-property" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wforbid-shadowing" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 struct S
 {

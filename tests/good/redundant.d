@@ -1,4 +1,4 @@
-// RUN: ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wredundant" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // No false positives on non-redundant expressions
 

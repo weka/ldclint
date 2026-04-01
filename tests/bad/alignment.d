@@ -1,4 +1,4 @@
-// RUN: ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wgc-align" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
 
 struct BadAligned1
 {

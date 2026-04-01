@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Werroneous-promotion" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wimplicit-truncation" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
 
 float foo(int a, int b)
 {

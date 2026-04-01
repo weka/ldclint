@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wboolbitwise" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wmisuse-bitwise" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // bitwise operations on integers should not warn
 

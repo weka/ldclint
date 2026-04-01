@@ -1,4 +1,4 @@
-// RUN: ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wforbid-atproperty -Wunused-private -Wredundant -Wparser" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 private int foo(int p1, int p2)
 {

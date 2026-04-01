@@ -10,6 +10,7 @@ import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
     "stack",
+    "size",
     No.byDefault,
     [ Parameter("size", Parameter.Type.integer, 256) ],
 );

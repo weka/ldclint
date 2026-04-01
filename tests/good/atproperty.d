@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Watproperty" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wforbid-atproperty" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // regular functions should not trigger @property warning
 

@@ -10,6 +10,7 @@ import std.algorithm;
 import std.string;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
+    "tool",
     "ctags",
     No.byDefault,
 );

@@ -1,6 +1,6 @@
-module ldclint.checks.coherence;
+module ldclint.checks.coherence_forward;
 
-import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.querier : Querier;
 import ldclint.utils.report;
 
 import DMD = ldclint.dmd;
@@ -9,6 +9,7 @@ import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
     "coherence",
+    "forward",
     Yes.byDefault,
 );
 
@@ -51,18 +52,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             case DMD.TY.Ttypeof:
             case DMD.TY.Tmixin:
                 warning(DMD.Loc.initial, "Type `%s` is a forward reference", t.toChars());
-                break;
-
-            case DMD.Tstruct:
-                auto ts = t.astNode.isTypeStruct();
-                if (!ts)
-                {
-                    error(DMD.Loc.initial, "Type `%s` is not coherent with it's type class", t.toChars());
-                }
-                break;
-
-            case DMD.Terror:
-                error(DMD.Loc.initial, "Type `%s` resolves to an error type", t.toChars());
                 break;
 
             default:

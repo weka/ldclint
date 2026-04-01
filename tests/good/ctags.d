@@ -1,4 +1,4 @@
-// RUN: cd %T && env LDCLINT_FLAGS="-Wctags" ldc2 -c %s -o- --plugin=libldclint.so && FileCheck %s < %T/tags
+// RUN: cd %T && env LDCLINT_FLAGS="-Wno-all -Wtool-ctags" ldc2 -c %s -o- --plugin=libldclint.so && FileCheck %s < %T/tags
 
 // CHECK: !_TAG_FILE_FORMAT
 // CHECK: !_TAG_FILE_SORTED

@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wunused" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wunused-private" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
 
 // CHECK-DAG: unused.d(4): Warning: Variable `unusedGlobal` appears to be unused
 private __gshared int unusedGlobal;

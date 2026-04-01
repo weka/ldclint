@@ -1,4 +1,4 @@
-// RUN: ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wlifetime-struct-copy" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 struct Foo1 {}
 struct Foo2 { @disable this(this); }

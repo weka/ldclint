@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wenum-conv" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wimplicit" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
 
 enum A { a1, a2 }
 enum B { b1, b2 }

@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wmayoverflow" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Woverflow" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
 
 ulong mul1(uint lhs, uint rhs)
 {

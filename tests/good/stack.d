@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wstack" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wstack-size" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // small stack variables should not warn
 

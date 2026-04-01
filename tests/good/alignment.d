@@ -1,4 +1,4 @@
-// RUN: ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wgc-align" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // @nogc exempts misaligned pointers from warning
 struct SafeAligned1

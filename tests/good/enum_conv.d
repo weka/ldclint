@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wno-all -Wenum-conv" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wimplicit" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 enum A { a1, a2 }
 enum B { b1, b2 }

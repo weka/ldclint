@@ -1,6 +1,6 @@
-module ldclint.checks.enum_conv;
+module ldclint.checks.implicit_enum_return;
 
-import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.querier : Querier;
 import ldclint.utils.report;
 
 import DMD = ldclint.dmd;
@@ -8,7 +8,8 @@ import DMD = ldclint.dmd;
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
-    "enum-conv",
+    "implicit",
+    "enum-return",
     No.byDefault,
 );
 
@@ -40,31 +41,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         super.visit(fd);
     }
 
-    override void visit(Querier!(DMD.CondExp) e)
-    {
-        super.visit(e);
-
-        if (!e.isValid()) return;
-        if (!e.isResolved()) return;
-
-        auto t1 = getOriginalType(cast(DMD.Expression) e.e1);
-        auto t2 = getOriginalType(cast(DMD.Expression) e.e2);
-
-        if (t1 is null || t2 is null) return;
-
-        // At least one must be an enum
-        auto te1 = t1.isTypeEnum();
-        auto te2 = t2.isTypeEnum();
-        if (te1 is null && te2 is null) return;
-
-        // Same enum type is fine
-        if (te1 !is null && te2 !is null && te1.sym is te2.sym) return;
-
-        warning(e.loc,
-            "Implicit conversion merges different types `%s` and `%s`",
-            t1.toChars(), t2.toChars());
-    }
-
     override void visit(Querier!(DMD.ReturnStatement) rs)
     {
         super.visit(rs);
@@ -79,8 +55,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         // during semantic analysis, making `return cast(T)x` indistinguishable
         // from `return x` in the AST. To avoid false positives, check the raw
         // source text for an explicit cast between `return` and the expression.
-        // Ideally we would correlate with the libdparse AST which preserves
-        // CastExpression nodes, but that infrastructure doesn't exist yet.
         if (exp.isCastExp()) return;
         if (sourceHasCast(rs.loc, exp.loc)) return;
 
@@ -110,22 +84,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         warning(rs.loc,
             "Implicit conversion merges different types `%s` and `%s`",
             expType.toChars(), retType.toChars());
-    }
-
-    /// Get the original type of an expression, unwrapping implicit CastExp
-    /// inserted by typeMerge to recover the pre-conversion type.
-    private static DMD.Type getOriginalType(DMD.Expression e)
-    {
-        if (e is null) return null;
-
-        // If typeMerge already lowered, unwrap CastExp to get original type
-        if (auto ce = e.isCastExp())
-        {
-            auto inner = getOriginalType(ce.e1);
-            if (inner !is null) return inner;
-        }
-
-        return e.type;
     }
 
     /// Check if the source text between two locations contains `cast(`.

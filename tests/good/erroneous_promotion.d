@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Werroneous-promotion" ldc2 -w -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wimplicit-truncation" ldc2 -w -c %s -o- --plugin=libldclint.so
 
 // casting operand before division is fine
 float foo(int a, int b)

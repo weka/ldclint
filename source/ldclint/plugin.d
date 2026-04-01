@@ -32,7 +32,7 @@ export extern(C) void runSemanticAnalysis(imported!"ldclint.dmd".Module m)
 
     foreach (ref info; allChecks())
     {
-        if (options.isEnabled(info.metadata.name))
+        if (options.isEnabled(info.metadata.fullName))
         {
             auto check = cast(AbstractCheck) info.classInfo.create();
             check.visit(querier(m));

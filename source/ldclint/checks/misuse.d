@@ -9,6 +9,7 @@ import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
     "misuse",
+    "destroy",
     Yes.byDefault,
 );
 

@@ -1,4 +1,4 @@
-module ldclint.checks.atproperty;
+module ldclint.checks.redundant_final;
 
 import ldclint.utils.querier : Querier;
 import ldclint.utils.report;
@@ -8,9 +8,9 @@ import DMD = ldclint.dmd;
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(
-    "forbid",
-    "atproperty",
-    No.byDefault,
+    "redundant",
+    "final",
+    Yes.byDefault,
 );
 
 final class Check : imported!"ldclint.checks".GenericCheck!Metadata
@@ -21,15 +21,16 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
     override void visit(Querier!(DMD.FuncDeclaration) fd)
     {
-        // lets skip invalid/unresolved functions
-        if (!fd.isResolved) return;
+        // lets skip invalid function declarations
+        if (!fd.isValid()) return;
 
-        if (fd.type.isTypeFunction().isproperty
-            || fd.storage_class & DMD.STC.property
-            || fd.storage_class2 & DMD.STC.property)
-            warning(fd.loc, "Avoid the usage of `@property` attribute");
+        if (fd.storage_class & DMD.STC.final_ && fd.visibility.kind == DMD.Visibility.Kind.private_)
+            warning(fd.loc, "Redundant attribute `final` with `private` visibility");
 
         // traverse through the AST
         super.visit(fd);
     }
+
+    // avoid all sorts of false positives without semantics
+    override void visit(Querier!(DMD.TemplateDeclaration) /* td */) { /* skip */ }
 }

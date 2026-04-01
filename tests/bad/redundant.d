@@ -1,4 +1,4 @@
-// RUN: env ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wredundant" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck %s
 
 int foo(int p1)
 {

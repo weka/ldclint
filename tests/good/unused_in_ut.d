@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wunused" ldc2 -w -unittest -c %s -o- --plugin=libldclint.so
+// RUN: env LDCLINT_FLAGS="-Wno-all -Wunused-private" ldc2 -w -unittest -c %s -o- --plugin=libldclint.so
 
 private string someFunctionForUnittests()
 {
