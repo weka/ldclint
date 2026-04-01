@@ -75,6 +75,15 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         auto exp = rs.exp;
         if (exp is null) return;
 
+        // Workaround: DMD strips explicit CastExp from return expressions
+        // during semantic analysis, making `return cast(T)x` indistinguishable
+        // from `return x` in the AST. To avoid false positives, check the raw
+        // source text for an explicit cast between `return` and the expression.
+        // Ideally we would correlate with the libdparse AST which preserves
+        // CastExpression nodes, but that infrastructure doesn't exist yet.
+        if (exp.isCastExp()) return;
+        if (sourceHasCast(rs.loc, exp.loc)) return;
+
         auto ft = currentFunc.type;
         if (ft is null) return;
         auto retType = ft.nextOf();
@@ -117,6 +126,36 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         }
 
         return e.type;
+    }
+
+    /// Check if the source text between two locations contains `cast(`.
+    /// Used to detect explicit casts that DMD stripped from the AST.
+    private bool sourceHasCast(DMD.Loc from, DMD.Loc to)
+    {
+        import std.algorithm : canFind;
+
+        if (currentModule is null) return false;
+        auto src = cast(const(char)[]) currentModule.src;
+        if (src.length == 0) return false;
+
+        auto start = locOffset(src, from);
+        auto end = locOffset(src, to);
+        if (start >= end || end > src.length) return false;
+
+        return src[start .. end].canFind("cast(");
+    }
+
+    /// Convert a Loc (line/column) to a byte offset into the source text.
+    private static size_t locOffset(const(char)[] src, DMD.Loc loc)
+    {
+        size_t offset = 0;
+        for (uint line = 1; offset < src.length && line < loc.linnum; offset++)
+            if (src[offset] == '\n')
+                line++;
+        // charnum is 1-based
+        if (loc.charnum > 0)
+            offset += loc.charnum - 1;
+        return offset;
     }
 
     // avoid false positives inside uninstantiated templates

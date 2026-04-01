@@ -15,6 +15,12 @@ auto baz(bool cond, int x, int y) { return cond ? x : y; }
 // returning same enum type is fine
 A ret_same(A a) { return a; }
 
+// returning int type but explicitly casted is fine
+A ret_int(int a) { return cast(A)a; }
+
+// returning A type but explicitly casted is fine
+int ret_int(A a) { return cast(int)a; }
+
 // auto return infers enum type — no conversion
 auto ret_auto(A a) { return a; }
 
