@@ -110,8 +110,9 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
         if (result.length) result ~= ".";
         result ~= imp.id.toString();
+        result ~= '\0'; // null-terminate for C format strings
 
-        return result;
+        return result[0 .. $ - 1];
     }
 
     // avoid false positives inside uninstantiated templates
