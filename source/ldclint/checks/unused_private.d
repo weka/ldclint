@@ -1,4 +1,4 @@
-module ldclint.checks.unused;
+module ldclint.checks.unused_private;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

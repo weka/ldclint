@@ -1,4 +1,4 @@
-module ldclint.checks.inner_struct_static;
+module ldclint.checks.explicit_static;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

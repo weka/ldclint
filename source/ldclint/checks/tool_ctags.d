@@ -1,4 +1,4 @@
-module ldclint.checks.ctags;
+module ldclint.checks.tool_ctags;
 
 import ldclint.utils.querier : Querier, querier;
 

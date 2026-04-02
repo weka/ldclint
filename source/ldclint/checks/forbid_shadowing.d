@@ -1,4 +1,4 @@
-module ldclint.checks.builtin_property;
+module ldclint.checks.forbid_shadowing;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

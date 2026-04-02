@@ -1,4 +1,4 @@
-module ldclint.checks.public_import;
+module ldclint.checks.import_visibility;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

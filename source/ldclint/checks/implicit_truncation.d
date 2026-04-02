@@ -1,4 +1,4 @@
-module ldclint.checks.erroneous_promotion;
+module ldclint.checks.implicit_truncation;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

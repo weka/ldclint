@@ -1,4 +1,4 @@
-module ldclint.checks.structs_dtor_postblit;
+module ldclint.checks.lifetime_struct_copy;
 
 import ldclint.utils.querier : Querier;
 import ldclint.utils.report;

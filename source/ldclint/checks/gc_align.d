@@ -1,4 +1,4 @@
-module ldclint.checks.alignment;
+module ldclint.checks.gc_align;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

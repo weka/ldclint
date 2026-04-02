@@ -1,4 +1,4 @@
-module ldclint.checks.import_sorting;
+module ldclint.checks.import_sort;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

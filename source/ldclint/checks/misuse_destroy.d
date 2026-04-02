@@ -1,4 +1,4 @@
-module ldclint.checks.misuse;
+module ldclint.checks.misuse_destroy;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

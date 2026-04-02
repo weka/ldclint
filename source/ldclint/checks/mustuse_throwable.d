@@ -1,4 +1,4 @@
-module ldclint.checks.mustuse;
+module ldclint.checks.mustuse_throwable;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

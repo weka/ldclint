@@ -1,4 +1,4 @@
-module ldclint.checks.stack;
+module ldclint.checks.stack_size;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

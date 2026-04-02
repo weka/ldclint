@@ -1,4 +1,4 @@
-module ldclint.checks.boolbitwise;
+module ldclint.checks.misuse_bitwise;
 
 import ldclint.utils.querier : Querier, querier;
 import ldclint.utils.report;

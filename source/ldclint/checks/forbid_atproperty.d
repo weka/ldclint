@@ -1,4 +1,4 @@
-module ldclint.checks.atproperty;
+module ldclint.checks.forbid_atproperty;
 
 import ldclint.utils.querier : Querier;
 import ldclint.utils.report;
