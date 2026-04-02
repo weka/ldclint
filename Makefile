@@ -87,6 +87,9 @@ $(OBJS): Makefile $(DYN_FLAGS_DEP)
 VENV_DIR := $(BUILD_DIR)/.venv
 PYTHON := $(VENV_DIR)/bin/python3
 
+venv: $(VENV_DIR)/bin/activate
+.PHONY: venv
+
 $(VENV_DIR)/bin/activate: requirements.txt
 	@echo " VENV " $(notdir $<)
 	@test -d $(VENV_DIR) || python3 -m venv $(VENV_DIR)
