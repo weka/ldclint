@@ -1,4 +1,4 @@
-// RUN: env LDCLINT_FLAGS="-Wno-all -Woverflow" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning %s
+// RUN: env LDCLINT_FLAGS="-Wno-all -Woverflow" ldc2 -wi -c %s -o- --plugin=libldclint.so 2>&1 | FileCheck --implicit-check-not=Warning --check-prefixes=CHECK%if real-extended %{,EXT%} %s
 
 ulong mul1(uint lhs, uint rhs)
 {
@@ -14,11 +14,17 @@ ulong mul3(uint   val) { return val * 1234; }
 long  mul4(int    val) { return val * -1234; }
 // CHECK-DAG: overflow.d(16): Warning: Expression `val * 1234.0F` may overflow before conversion
 real  mul5(float  val) { return val * 1234.0f; }
-// CHECK-DAG: overflow.d(18): Warning: Expression `val * -1234.0` may overflow before conversion
-real  mul6(double val) { return val * -1234.0; }
+
+import std.math.traits : floatTraits;
+
+static if (floatTraits!real.realFormat > floatTraits!double.realFormat)
+{
+    // EXT-DAG: overflow.d(23): Warning: Expression `val * -1234.0` may overflow before conversion
+    real  mul6(double val) { return val * -1234.0; }
+}
 
 uint foo(uint a)
 {
-    // CHECK-DAG: overflow.d(23): Warning: Negating unsigned integer of type `uint`: replace `-a` with `(~a) + 1`
+    // CHECK-DAG: overflow.d(29): Warning: Negating unsigned integer of type `uint`: replace `-a` with `(~a) + 1`
     return -a;
 }
