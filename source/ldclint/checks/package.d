@@ -201,7 +201,13 @@ mixin template RegisterCheck(Metadata metadata)
     import ldclint.checks : CheckInfo;
     import ldc.attributes : section, assumeUsed;
 
-    @assumeUsed @section("ldclint_checks") align(1)
+    // Mach-O requires "segment,section" format; ELF uses the name directly
+    version(OSX)
+        enum _ldclintSection = "__DATA,ldclint_checks";
+    else
+        enum _ldclintSection = "ldclint_checks";
+
+    @assumeUsed @section(_ldclintSection) align(1)
     __gshared CheckInfo info = CheckInfo(
         typeid(typeof(this)),
         metadata,
