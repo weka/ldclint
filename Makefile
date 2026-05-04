@@ -12,15 +12,43 @@ FORCE:
 BUILD_DIR := builddir
 OUT_DIR := $(BUILD_DIR)/out
 
-export LD_LIBRARY_PATH := $(realpath $(OUT_DIR)):$(LD_LIBRARY_PATH)
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Darwin)
+export DYLD_LIBRARY_PATH := $(abspath $(OUT_DIR)):$(DYLD_LIBRARY_PATH)
+
+# Homebrew's LLVM keg isn't symlinked to /usr/local/bin; locate FileCheck for tests.
+FILECHECK_DIR := $(firstword $(wildcard \
+    /opt/homebrew/opt/llvm/bin \
+    /opt/homebrew/opt/llvm@21/bin \
+    /opt/homebrew/opt/llvm@20/bin \
+    /opt/homebrew/opt/llvm@19/bin \
+    /usr/local/opt/llvm/bin))
+ifneq ($(FILECHECK_DIR),)
+export PATH := $(FILECHECK_DIR):$(PATH)
+endif
+else
+export LD_LIBRARY_PATH := $(abspath $(OUT_DIR)):$(LD_LIBRARY_PATH)
+endif
 
 # Compiler
 LDC2 = ldc2
 LDC2_SRC ?= ldc2-src
 
+ifeq ($(UNAME_S),Darwin)
+# On macOS, don't compile phobos into the plugin. ldc2 exports phobos/druntime
+# symbols; compiling them in causes duplicate module init that crashes the GC.
+# Exception: std.experimental.allocator.mallocator is not exported by ldc2
+# and is needed by libdparse, so include it explicitly (it uses C malloc, safe).
+SRCS := $(call rwildcard,source,*.d) \
+	$(call rwildcard,libdparse/src,*.d) \
+	$(LDC2_SRC)/runtime/phobos/std/experimental/allocator/mallocator.d \
+	$(LDC2_SRC)/runtime/phobos/std/experimental/allocator/common.d
+else
 SRCS := $(call rwildcard,source,*.d) \
 	$(call rwildcard,libdparse/src,*.d) \
 	$(call rwildcard,$(LDC2_SRC)/runtime/phobos/std,*.d)
+endif
 
 OBJS := $(patsubst %.d,$(BUILD_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
@@ -50,6 +78,14 @@ endif
 
 DFLAGS ?=
 
+ifeq ($(UNAME_S),Darwin)
+# macOS dylibs require explicit permission to leave symbols undefined;
+# they will be resolved from ldc2's symbol table when the plugin is dlopen'd.
+LDFLAGS := -L-undefined -Ldynamic_lookup
+else
+LDFLAGS :=
+endif
+
 $(BUILD_DIR)/.dyn.dflags: FORCE
 	@mkdir -p $(dir $@)
 	@echo "$(DEBUG_DFLAGS) $(DFLAGS)" | cmp -s - $@ || (echo "$(DEBUG_DFLAGS) $(DFLAGS)" > $@)
@@ -68,10 +104,14 @@ clean:
 
 $(TARGET): $(OBJS)
 	@echo " LINK " $(notdir $<)
-	@$(LDC2) $(SRC_DFLAGS) $(DFLAGS) --shared $(OBJS) -of=$@
+	@$(LDC2) $(SRC_DFLAGS) $(DFLAGS) $(LDFLAGS) --shared $(OBJS) -of=$@
 	@if [ "$(DEBUG)" = "0" ]; then \
 		echo " STRIP " $(notdir $@); \
-		strip --strip-all --keep-symbol=runSemanticAnalysis $@ ; \
+		if [ "$$(uname -s)" = "Darwin" ]; then \
+			strip -x $@ ; \
+		else \
+			strip --strip-all --keep-symbol=runSemanticAnalysis $@ ; \
+		fi \
 	fi
 
 $(BUILD_DIR)/%.o: %.d
