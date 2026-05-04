@@ -4,7 +4,13 @@ import DMD = ldclint.dmd;
 import DParse = ldclint.dparse;
 
 import ldclint.utils.location;
-public import dmd.target : target;
+
+// On macOS, ldc2 hides _target (built with -fvisibility=hidden) so we can't
+// reach it from the plugin. Elsewhere we use it directly; on macOS the
+// affected case labels fall through to the default branch, which dispatches
+// into ldc2 via astNode.size() — that path sees ldc2's target correctly.
+version(OSX) {}
+else public import dmd.target : target;
 
 import std.traits;
 import std.typecons;
@@ -180,25 +186,6 @@ struct Querier(T)
                 case DMD.TY.Terror:
                     return typeof(return).init;
 
-                case DMD.Tarray:
-                    return markResolved(size_t(
-                        target.ptrsize + (target.isLP64 ? 8 : 4)
-                    ));
-
-                case DMD.TY.Taarray:
-                case DMD.TY.Tpointer:
-                case DMD.TY.Treference:
-                case DMD.TY.Tclass:
-                case DMD.TY.Tnull:
-                case DMD.TY.Tfunction:
-                    return markResolved(size_t(
-                        target.ptrsize
-                    ));
-                case DMD.TY.Tdelegate:
-                    return markResolved(size_t(
-                        target.ptrsize * 2
-                    ));
-
                 case DMD.TY.Tint8:
                 case DMD.TY.Tuns8:
                 case DMD.TY.Tbool:
@@ -206,47 +193,57 @@ struct Querier(T)
                     return markResolved(size_t(1));
                 case DMD.TY.Tint16:
                 case DMD.TY.Tuns16:
+                case DMD.Twchar:
                     return markResolved(size_t(2));
                 case DMD.TY.Tint32:
                 case DMD.TY.Tuns32:
                 case DMD.TY.Tfloat32:
                 case DMD.TY.Timaginary32:
+                case DMD.Tdchar:
                     return markResolved(size_t(4));
                 case DMD.TY.Tint64:
                 case DMD.TY.Tuns64:
                 case DMD.TY.Tfloat64:
                 case DMD.TY.Timaginary64:
-                    return markResolved(size_t(8));
-
-                case DMD.Tint128:
-                case DMD.Tuns128:
-                    return markResolved(size_t(16));
-
                 case DMD.TY.Tcomplex32:
                     return markResolved(size_t(8));
+                case DMD.Tint128:
+                case DMD.Tuns128:
                 case DMD.TY.Tcomplex64:
                     return markResolved(size_t(16));
 
-                case DMD.TY.Tfloat80:
-                case DMD.TY.Timaginary80:
-                    return markResolved(size_t(target.realsize));
-                case DMD.TY.Tcomplex80:
-                    return markResolved(size_t(
-                        target.realsize * 2
-                    ));
+                // Target-dependent types: on non-macOS we read from `target`
+                // directly; on macOS those labels are absent so the cases
+                // fall through to `default` which uses the virtual size().
+                version(OSX) {}
+                else
+                {
+                    case DMD.Tarray:
+                        return markResolved(size_t(
+                            target.ptrsize + (target.isLP64 ? 8 : 4)
+                        ));
 
-                case DMD.Twchar:
-                    return markResolved(size_t(2));
-                case DMD.Tdchar:
-                    return markResolved(size_t(4));
+                    case DMD.TY.Taarray:
+                    case DMD.TY.Tpointer:
+                    case DMD.TY.Treference:
+                    case DMD.TY.Tclass:
+                    case DMD.TY.Tnull:
+                    case DMD.TY.Tfunction:
+                        return markResolved(size_t(target.ptrsize));
+                    case DMD.TY.Tdelegate:
+                        return markResolved(size_t(target.ptrsize * 2));
+
+                    case DMD.TY.Tfloat80:
+                    case DMD.TY.Timaginary80:
+                        return markResolved(size_t(target.realsize));
+                    case DMD.TY.Tcomplex80:
+                        return markResolved(size_t(target.realsize * 2));
+                }
 
                 default:
                     auto sz = baseType.astNode.size();
-
-                    // should be the same but what if there's an exotic
-                    // architecture.  Let's play safe here
                     if (sz == DMD.SIZE_INVALID) return typeof(return).init;
-                    else                    return markResolved(sz);
+                    return markResolved(sz);
             }
         }
     }
