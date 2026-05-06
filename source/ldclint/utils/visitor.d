@@ -12,6 +12,15 @@ import std.array;
 import std.traits;
 import std.meta;
 
+// dmd renamed the loop-variable field on IfStatement/ForeachRangeStatement
+// from `prm` to `param` in D 2.111 (LDC 1.41). Provide UFCS shims so the
+// visitor call sites can keep using `s.prm`.
+static if (__VERSION__ >= 2111)
+{
+    pragma(inline, true) auto prm(DMD.IfStatement s)            { return s.param; }
+    pragma(inline, true) auto prm(DMD.ForeachRangeStatement s)  { return s.param; }
+}
+
 //debug = visitor;
 
 abstract class Visitor

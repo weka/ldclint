@@ -44,11 +44,26 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             // skip expressions known at compile-time
             if (querier(e.e1).hasCTKnownValue.get || querier(e.e2).hasCTKnownValue.get) return;
 
-            // skip rvalues from this check
-            if (!querier(e.e1).isLvalue.get) return;
-            if (!querier(e.e2).isLvalue.get) return;
+            // Skip everything that isn't a plain variable / member / index
+            // reference. Using op-kind here (rather than `isLvalue`) avoids
+            // the D 2.112 rvalue-flag regression where VarExp.isLvalue can
+            // return false for normal identifier reads.
+            if (!isStructuralLvalue(e.e1) || !isStructuralLvalue(e.e2)) return;
 
             warning(e.loc, "Redundant expression `%s`", e.toChars());
+        }
+    }
+
+    private static bool isStructuralLvalue(DMD.Expression e)
+    {
+        switch (e.op)
+        {
+            case DMD.EXP.variable:
+            case DMD.EXP.dotVariable:
+            case DMD.EXP.index:
+                return true;
+            default:
+                return false;
         }
     }
 

@@ -5,6 +5,11 @@ import ldclint.utils.report;
 
 import DMD = ldclint.dmd;
 
+// VarDeclaration.hasPointers() was removed as a member in D 2.112 (LDC 1.42)
+// and is provided as a free function in dmd.dsymbolsem; importing it here
+// keeps `var.hasPointers` resolving via UFCS.
+static if (__VERSION__ >= 2112) import dmd.dsymbolsem : hasPointers;
+
 import std.typecons : No, Yes, Flag;
 
 enum Metadata = imported!"ldclint.checks".Metadata(

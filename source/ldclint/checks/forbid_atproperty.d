@@ -24,7 +24,13 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         // lets skip invalid/unresolved functions
         if (!fd.isResolved) return;
 
-        if (fd.type.isTypeFunction().isproperty
+        // dmd.TypeFunction renamed isproperty -> isProperty in D 2.111 (LDC 1.41).
+        static if (__VERSION__ >= 2111)
+            const isAtProperty = fd.type.isTypeFunction().isProperty;
+        else
+            const isAtProperty = fd.type.isTypeFunction().isproperty;
+
+        if (isAtProperty
             || fd.storage_class & DMD.STC.property
             || fd.storage_class2 & DMD.STC.property)
             warning(fd.loc, "Avoid the usage of `@property` attribute");

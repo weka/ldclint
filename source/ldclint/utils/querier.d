@@ -12,6 +12,15 @@ import ldclint.utils.location;
 version(OSX) {}
 else public import dmd.target : target;
 
+// Type.size() was a member method on Type up to D 2.109 (LDC 1.39); from
+// D 2.110 (LDC 1.40) it lives as a free function in dmd.typesem. Import it
+// so `astNode.size()` continues to resolve via UFCS.
+static if (__VERSION__ >= 2110) import dmd.typesem : size;
+
+// Expression.isIdentical was likewise moved out to dmd.expressionsem in
+// D 2.112 (LDC 1.42); UFCS keeps `astNode.isIdentical(other)` resolving.
+static if (__VERSION__ >= 2112) import dmd.expressionsem : isIdentical;
+
 import std.traits;
 import std.typecons;
 
@@ -154,13 +163,21 @@ struct Querier(T)
         Resolved!bool isScalarType()
         {
             if (!isResolved) return typeof(return).init;
-            return typeof(return)(astNode.isscalar);
+            // dmd.Type renamed isscalar -> isScalar in D 2.111 (LDC 1.41).
+            static if (__VERSION__ >= 2111)
+                return typeof(return)(astNode.isScalar);
+            else
+                return typeof(return)(astNode.isscalar);
         }
 
         Resolved!bool isUnsignedType()
         {
             if (!isResolved) return typeof(return).init;
-            return typeof(return)(astNode.isunsigned);
+            // dmd.Type renamed isunsigned -> isUnsigned in D 2.111 (LDC 1.41).
+            static if (__VERSION__ >= 2111)
+                return typeof(return)(astNode.isUnsigned);
+            else
+                return typeof(return)(astNode.isunsigned);
         }
 
         auto isStructType()       { return querier(baseType.astNode.isTypeStruct()); }
