@@ -1,0 +1,8 @@
+builddir/
+.claude/
+.gdb_history
+Session.vim
+sanity-check
+*.o
+*.swp
+.DS_Store
