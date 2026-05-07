@@ -21,6 +21,10 @@ static if (__VERSION__ >= 2110) import dmd.typesem : size;
 // D 2.112 (LDC 1.42); UFCS keeps `astNode.isIdentical(other)` resolving.
 static if (__VERSION__ >= 2112) import dmd.expressionsem : isIdentical;
 
+// Dsymbol.search lives as a free function in dmd.dsymbolsem; pull it in so
+// UFCS keeps `astNode.search(loc, ident)` resolving for hasSymbol(...).
+import dmd.dsymbolsem : search;
+
 import std.traits;
 import std.typecons;
 
