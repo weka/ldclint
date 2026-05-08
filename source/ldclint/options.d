@@ -10,12 +10,47 @@ class InvalidOptionsException : Exception
     mixin imported!"std.exception".basicExceptionCtors;
 }
 
+struct FilterRule
+{
+    enum Kind : ubyte { include, exclude }
+
+    Kind kind;
+    string pattern;
+    /// `true` if `pattern` matches the source-file path; `false` if it
+    /// matches the fully-qualified module name.
+    bool isPath;
+
+    /// Patterns starting with `/` or `./` are paths; everything else is a
+    /// module name.
+    @safe pure
+    static bool patternIsPath(string pattern)
+    {
+        return pattern.length >= 1 && pattern[0] == '/'
+            || pattern.length >= 2 && pattern[0 .. 2] == "./";
+    }
+
+    /// Match `pattern` against `fqn` (module name) or `path` (source file
+    /// path) using `std.path.globMatch`. For path patterns we also accept
+    /// `pattern ~ "/*"` so a folder pattern matches everything inside.
+    bool matches(string fqn, string path) const
+    {
+        import std.path : globMatch;
+
+        if (isPath)
+            return globMatch(path, pattern)
+                || globMatch(path, pattern ~ "/*");
+
+        return globMatch(fqn, pattern);
+    }
+}
+
 struct Options
 {
     private bool[string] enabled;
     private Parameter.Value[string][string] params;
     private CheckInfo[string] infoByName;
     private string[][string] groups;
+    private FilterRule[] filterRules;
     private bool initialized;
     private bool parsed;
 
@@ -49,6 +84,21 @@ struct Options
         if (auto p = name in params)
             return *p;
         return null;
+    }
+
+    /// Returns true if a module with the given FQN and source-file path
+    /// should be analyzed. With no rules, every module is analyzed; rules
+    /// are evaluated in declaration order and the last matching one wins.
+    bool shouldAnalyze(string fqn, string path) const
+        in(parsed)
+    {
+        bool included = true;
+        foreach (ref rule; filterRules)
+        {
+            if (rule.matches(fqn, path))
+                included = (rule.kind == FilterRule.Kind.include);
+        }
+        return included;
     }
 
     void parse(string[] args)
@@ -86,6 +136,15 @@ struct Options
                 }
                 else
                     throw new InvalidOptionsException("unknown check: " ~ name);
+            }
+            else if (a.length > 2 && (a[0 .. 2] == "-E" || a[0 .. 2] == "-I"))
+            {
+                auto pattern = a[2 .. $];
+                auto kind = a[1] == 'E'
+                    ? FilterRule.Kind.exclude
+                    : FilterRule.Kind.include;
+                filterRules ~= FilterRule(
+                    kind, pattern, FilterRule.patternIsPath(pattern));
             }
             else if (a.length > 2 && a[0 .. 2] == "-W")
             {

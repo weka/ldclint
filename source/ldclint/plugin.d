@@ -23,6 +23,9 @@ export extern(C) void runSemanticAnalysis(imported!"ldclint.dmd".Module m)
 
     auto filename = cast(immutable) m.srcfile.toString();
 
+    if (!options.shouldAnalyze(moduleFqn(m), filename))
+        return;
+
     import ldclint.dparse : dparseModule;
     dparseModule(
         options.isEnabled("parser") ? Yes.parserErrors : No.parserErrors,
@@ -38,4 +41,13 @@ export extern(C) void runSemanticAnalysis(imported!"ldclint.dmd".Module m)
             check.visit(querier(m));
         }
     }
+}
+
+private string moduleFqn(imported!"ldclint.dmd".Module m)
+{
+    import dmd.common.outbuffer : OutBuffer;
+
+    OutBuffer buf;
+    m.fullyQualifiedName(buf);
+    return cast(immutable)buf.extractSlice();
 }
