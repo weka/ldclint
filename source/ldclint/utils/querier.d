@@ -475,6 +475,25 @@ struct Querier(T)
         return true;
     }
 
+    size_t instanceSize()
+    {
+        if (this.astNode is null) return 0;
+
+        static if (is(T == class) || is(T == interface))
+            auto sz = __traits(classInstanceSize, typeof(this.astNode));
+        else
+            auto sz = T.sizeof;
+
+        static if (is(T : DMD.Module))
+        {
+            // length of the file
+            sz += this.astNode.src.length;
+        }
+
+        return sz;
+
+    }
+
     const(char)[] toString()
     {
         static if (is(T : DMD.Module))
