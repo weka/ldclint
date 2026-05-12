@@ -37,3 +37,9 @@ void onlyInUninstantiatedTemplate(T)(T x)
 {
     sqrt(x);
 }
+
+// UDAs attached at the wrap-form positions (`@MyAttr struct/func/...`).
+// See unused_imports_uda_param.d / unused_imports_uda_enum.d for the
+// side-channel positions.
+import core.attribute : mustuse;
+@mustuse struct UsedAsAggregateUda {}

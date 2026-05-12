@@ -1,6 +1,7 @@
 module ldclint.checks.unused_imports;
 
 import ldclint.utils.querier : Querier, querier;
+import ldclint.utils.visitor : ExtendedVisitor;
 import ldclint.utils.report;
 
 import DMD = ldclint.dmd;
@@ -15,11 +16,11 @@ enum Metadata = imported!"ldclint.checks".Metadata(
     No.byDefault,
 );
 
-final class Check : imported!"ldclint.checks".GenericCheck!Metadata
+final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVisitor)
 {
     mixin imported!"ldclint.checks".RegisterCheck!Metadata;
 
-    alias visit = imported!"ldclint.checks".GenericCheck!Metadata.visit;
+    alias visit = imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVisitor).visit;
 
     static struct Context
     {
@@ -141,6 +142,17 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         super.visit(e);
 
         if (e.member) context.incrementRef(e.member);
+    }
+
+    /// `@StructType(args)` UDAs and value-construction patterns lower to a
+    /// `StructLiteralExp` whose `sd` field is the only direct link to the
+    /// declaring module — the default visit only walks the elements.
+    override void visit(Querier!(DMD.StructLiteralExp) e)
+    {
+        if (!e.isValid()) return;
+        super.visit(e);
+
+        context.incrementRef(e.sd);
     }
 
     override void visit(Querier!(DMD.VarExp) e)

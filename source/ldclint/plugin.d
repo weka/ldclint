@@ -37,7 +37,8 @@ export extern(C) void runSemanticAnalysis(imported!"ldclint.dmd".Module m)
     {
         if (options.isEnabled(info.metadata.fullName))
         {
-            auto check = cast(AbstractCheck) info.classInfo.create();
+            import ldclint.utils.visitor : Visitor;
+            auto check = cast(Visitor) info.classInfo.create();
             check.visit(querier(m));
         }
     }

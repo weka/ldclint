@@ -2209,3 +2209,101 @@ abstract class Visitor
     ))
         void visit (Querier!T) { mixin(incrementLevelMixin); /* skip */ }
 }
+
+/// `ExtendedVisitor` extends the base `Visitor` to walk parts of the AST
+/// the default traversal skips. Today that means UDAs attached through the
+/// side-channel `userAttribDecl` slot (on `Module`, `VarDeclaration`,
+/// `EnumMember`, `FuncDeclaration`, and the aggregate declarations) and
+/// the type-level `Parameter` list of function declarations without a body
+/// — both of which the base visitor never reaches.
+///
+/// Checks default to this class via `AbstractCheck` so any check walking
+/// expressions automatically sees UDA expressions without having to
+/// re-implement the traversal locally.
+abstract class ExtendedVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    /// Walk `node.userAttribDecl.atts` (the side-channel UDA storage on
+    /// modules, parameters, enum members, etc., where the AST has no
+    /// wrapping `UserAttributeDeclaration` to cover them).
+    protected final void traverseUDAs(T)(T node)
+        if (__traits(hasMember, T, "userAttribDecl"))
+    {
+        if (node is null) return;
+        auto uad = node.userAttribDecl;
+        if (uad is null || uad.atts is null) return;
+        foreach (att; *uad.atts)
+            if (att) att.accept(dmdVisitorProxy);
+    }
+
+    /// For declaration-only functions (no body), `fd.parameters` (the
+    /// VarDeclaration form) is null, so the default body traversal can't
+    /// reach parameter UDAs. Walk the type-level Parameter list instead so
+    /// any UDAs sitting on `Parameter.userAttribDecl` are still seen.
+    protected final void traverseFunctionParameterUDAs(DMD.FuncDeclaration fd)
+    {
+        if (fd is null) return;
+        auto tf = cast(DMD.TypeFunction)fd.type;
+        if (tf is null || tf.parameterList.parameters is null) return;
+        foreach (p; *tf.parameterList.parameters)
+            if (p) traverseUDAs(p);
+    }
+
+    override void visit(Querier!(DMD.Module) m)
+    {
+        if (!m.isValid()) return;
+        traverseUDAs(m.astNode);
+        super.visit(m);
+    }
+
+    override void visit(Querier!(DMD.VarDeclaration) vd)
+    {
+        if (!vd.isValid()) return;
+        traverseUDAs(vd.astNode);
+        super.visit(vd);
+    }
+
+    override void visit(Querier!(DMD.EnumMember) em)
+    {
+        if (!em.isValid()) return;
+        traverseUDAs(em.astNode);
+        super.visit(em);
+    }
+
+    override void visit(Querier!(DMD.FuncDeclaration) fd)
+    {
+        if (!fd.isValid()) return;
+        traverseUDAs(fd.astNode);
+        traverseFunctionParameterUDAs(fd.astNode);
+        super.visit(fd);
+    }
+
+    override void visit(Querier!(DMD.StructDeclaration) sd)
+    {
+        if (!sd.isValid()) return;
+        traverseUDAs(sd.astNode);
+        super.visit(sd);
+    }
+
+    override void visit(Querier!(DMD.ClassDeclaration) cd)
+    {
+        if (!cd.isValid()) return;
+        traverseUDAs(cd.astNode);
+        super.visit(cd);
+    }
+
+    override void visit(Querier!(DMD.InterfaceDeclaration) id)
+    {
+        if (!id.isValid()) return;
+        traverseUDAs(id.astNode);
+        super.visit(id);
+    }
+
+    override void visit(Querier!(DMD.UnionDeclaration) ud)
+    {
+        if (!ud.isValid()) return;
+        traverseUDAs(ud.astNode);
+        super.visit(ud);
+    }
+}

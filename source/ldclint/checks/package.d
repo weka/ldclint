@@ -69,10 +69,10 @@ struct Metadata
     ubyte priority = 0;
 }
 
-class AbstractCheck : Visitor
+class AbstractCheck(V = Visitor) : V
 {
     ///
-    alias visit = Visitor.visit;
+    alias visit = V.visit;
 
     /// module currently visiting
     DMD.Module currentModule = null;
@@ -151,10 +151,10 @@ struct CheckInfo {
     Metadata metadata;
 }
 
-class GenericCheck(Metadata metadata) : AbstractCheck
+class GenericCheck(Metadata metadata, V = Visitor) : AbstractCheck!V
 {
     ///
-    alias visit = AbstractCheck.visit;
+    alias visit = AbstractCheck!V.visit;
 
     static foreach(param; metadata.parameters)
     {
