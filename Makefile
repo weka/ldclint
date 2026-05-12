@@ -35,20 +35,9 @@ endif
 LDC2 = ldc2
 LDC2_SRC ?= ldc2-src
 
-ifeq ($(UNAME_S),Darwin)
-# On macOS, don't compile phobos into the plugin. ldc2 exports phobos/druntime
-# symbols; compiling them in causes duplicate module init that crashes the GC.
-# Exception: std.experimental.allocator.mallocator is not exported by ldc2
-# and is needed by libdparse, so include it explicitly (it uses C malloc, safe).
-SRCS := $(call rwildcard,source,*.d) \
-	$(call rwildcard,libdparse/src,*.d) \
-	$(LDC2_SRC)/runtime/phobos/std/experimental/allocator/mallocator.d \
-	$(LDC2_SRC)/runtime/phobos/std/experimental/allocator/common.d
-else
 SRCS := $(call rwildcard,source,*.d) \
 	$(call rwildcard,libdparse/src,*.d) \
 	$(call rwildcard,$(LDC2_SRC)/runtime/phobos/std,*.d)
-endif
 
 OBJS := $(patsubst %.d,$(BUILD_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
