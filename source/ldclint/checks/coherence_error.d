@@ -26,7 +26,7 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
 
         if (t.astNode.ty == DMD.Terror)
         {
-            error(DMD.Loc.initial, "Type `%s` resolves to an error type", t.toChars());
+            error(DMD.Loc.initial, "Type `%s` resolves to an error type", t.toString().ptr);
         }
 
         // traverse through the AST

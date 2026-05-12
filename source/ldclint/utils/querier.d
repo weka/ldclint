@@ -475,6 +475,34 @@ struct Querier(T)
         return true;
     }
 
+    const(char)[] toString()
+    {
+        static if (is(T : DMD.Module))
+        {
+            import dmd.common.outbuffer : OutBuffer;
+            OutBuffer buf;
+            astNode.fullyQualifiedName(buf);
+            auto str = buf.extractSlice(true);
+
+            import core.memory : GC;
+            GC.addRange(str.ptr, str.length);
+
+            return str;
+        }
+        else static if (__traits(compiles, astNode.toChars()))
+        {
+            // Pointer-typed Queriers (e.g. `Querier!(void*)` reached via the
+            // `cast(void*)` overload of opCast) don't have a `.toChars()` —
+            // bail rather than fail to compile.
+            import std.string : fromStringz;
+            return fromStringz(astNode.toChars());
+        }
+        else
+        {
+            return null;
+        }
+    }
+
     static if (is(T : DMD.Expression))
     {
         auto type() { return querier(astNode.type); }
