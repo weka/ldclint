@@ -80,6 +80,30 @@ final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVi
         return _output;
     }
 
+    /// Rolling write buffer. Rows are formatted into here directly and
+    /// accumulate until they cross `flushThreshold` bytes — at which
+    /// point the buffer is shipped to the file in a single `rawWrite`
+    /// under an advisory file lock.
+    ///
+    /// Why we batch:
+    /// - Each `File.lock()` is an `fcntl(F_SETLKW)` syscall plus a
+    ///   companion `unlock`. Doing that per row costs ~2 syscalls × every
+    ///   AST node in the compile — for a sizeable codebase that's
+    ///   hundreds of thousands of fcntls on the hot path.
+    /// - Under `O_APPEND`, the kernel positions to EOF atomically at
+    ///   each `write(2)` — but the strict POSIX atomicity guarantee
+    ///   for concurrent appenders only holds up to `PIPE_BUF` (≈4 KiB
+    ///   on Linux). Bigger writes from competing processes can
+    ///   interleave. We bridge that gap by taking the advisory file
+    ///   lock for the flush, so cross-process writers serialise on
+    ///   the buffer boundary instead of every row.
+    ///
+    /// The chosen 4 MiB threshold is large enough to amortise the lock
+    /// across tens of thousands of rows while small enough to bound how
+    /// much data sits in volatile memory between flushes.
+    private Appender!(char[]) writeBuffer;
+    private enum size_t flushThreshold = 64 * 1024 * 1024;
+
     // ─── module (entry point) ──────────────────────────────────
 
     /// Re-entrancy flag: only the *outermost* `visit(Module)` call
@@ -110,6 +134,19 @@ final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVi
                 if (other is null || other is m.astNode) continue;
                 other.accept(dmdVisitorProxy);
             }
+
+            // End of an outermost `runSemanticAnalysis` call — drain
+            // whatever rows are still in `writeBuffer`. Without this,
+            // anything that didn't push the buffer past `flushThreshold`
+            // during the call would stay in memory until the next call
+            // (or never make it to disk if this was the last one).
+            //
+            // We rely on this instead of a `pragma(crt_destructor)`:
+            // LDC plugins don't reliably run D-runtime exit hooks under
+            // `dlclose`, but `runSemanticAnalysis` is a callback the
+            // host always reaches — every blame-relevant byte is
+            // already accounted for by the time we get here.
+            flushBuffer();
         }
     }
 
@@ -277,9 +314,6 @@ final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVi
 
     // ─── helpers ───────────────────────────────────────────────
 
-    /// temporary append buffer to write blame row
-    private Appender!(char[]) tempBuffer;
-
     import std.typecons : Tuple, tuple;
     /// parent (in terms of dependency) or previously visited AST node pointer
     private Tuple!(void*, "ptr", size_t, "hash") parentNode = tuple(null, 0);
@@ -363,9 +397,10 @@ final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVi
             }
         }
 
-        tempBuffer.clear();
-
-        tempBuffer.formattedWrite!"%s,0x%X,0x%X,0x%X,0x%X,%s,%d,%s,%d\n"(
+        // Format straight into the rolling buffer — no per-row syscalls,
+        // no per-row lock. The buffer is shipped to disk when it
+        // crosses `flushThreshold` (or when the plugin is unloaded).
+        writeBuffer.formattedWrite!"%s,0x%X,0x%X,0x%X,0x%X,%s,%d,%s,%d\n"(
             kind,
             hash,
             cast(size_t)cast(void*)node.astNode,
@@ -377,12 +412,30 @@ final class Check : imported!"ldclint.checks".GenericCheck!(Metadata, ExtendedVi
             sz
         );
 
+        if (writeBuffer[].length >= flushThreshold)
+            flushBuffer();
+    }
+
+    /// Drain `writeBuffer` to the file in a single `rawWrite` under
+    /// the advisory file lock. The lock excludes other ldclint
+    /// processes for the duration of the write, so even though POSIX
+    /// only guarantees atomicity for `O_APPEND` writes ≤ `PIPE_BUF`,
+    /// our 4 MiB chunks are still serialised cleanly — no other
+    /// writer can land bytes between our `fcntl(F_SETLKW)` and our
+    /// `unlock`. Same-process threads are already serialised by
+    /// `plugin.d`'s `pluginMutex` higher up the call chain.
+    void flushBuffer()
+    {
+        if (writeBuffer[].length == 0) return;
+
         auto f = output();
         f.lock();
         scope(exit) f.unlock();
-        
-        f.rawWrite(tempBuffer[]);
+
+        f.rawWrite(writeBuffer[]);
         f.flush();
+
+        writeBuffer.clear();
     }
 
     /// Minimal RFC-4180-ish escaping: wrap in quotes and double existing
