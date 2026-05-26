@@ -55,7 +55,10 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             {
                 foreach (mod; path)
                     reported[cast(void*)mod] = true;
-                reportCycle(root, path);
+                // A module appearing in its own aimports is a DMD artefact,
+                // not a real cycle between distinct modules — skip it.
+                if (path.length > 1)
+                    reportCycle(root, path);
                 return true;
             }
             auto k = cast(void*)imp;
