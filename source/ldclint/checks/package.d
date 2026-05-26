@@ -3,6 +3,7 @@ module ldclint.checks;
 import ldclint.utils.visitor;
 import ldclint.utils.querier;
 
+import std.array : replace;
 import std.typecons;
 
 import DMD    = ldclint.dmd;
@@ -181,7 +182,7 @@ class GenericCheck(Metadata metadata, V = Visitor) : AbstractCheck!V
             return value.get;
         }
 
-        mixin("alias ", param.name, " = getParameter!\"", param.name, "\";");
+        mixin("alias ", param.name.replace("-", "_"), " = getParameter!\"", param.name, "\";");
     }
 
     override void visit (Querier!(DMD.Module) m)
