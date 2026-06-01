@@ -23,3 +23,9 @@ private __gshared int globalFoobar;
 
 // CHECK-DAG: func.d(25): Warning: Redundant attribute `static` and `__gshared`
 static __gshared int redundantAttr;
+
+// block with only variables — static is still redundant with __gshared
+// CHECK-DAG: func.d(30): Warning: Redundant attribute `static` and `__gshared`
+__gshared static {
+    int blockOnlyVar;
+}

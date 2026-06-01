@@ -13,3 +13,11 @@ int bar(int p1)
 void barno(int) {}
 
 __gshared int globalFoo;
+
+// block with a function — static has different meaning for the function, so
+// variables in the same block are not flagged even with __gshared
+struct GoodBlockGsharedStatic {
+    __gshared static:
+    int x;
+    void method() {}
+}
