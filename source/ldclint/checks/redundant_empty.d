@@ -63,8 +63,11 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
             if (src[offset] == '\n')
                 line++;
 
-        // Advance by column to avoid matching braces before the block
-        offset += loc.charnum;
+        // charnum is 1-based; subtracting 1 lands on the column rather than one past it.
+        // Without the -1, when loc points directly at '{' (else-body case) the scan
+        // overshoots and finds the first nested '{' instead of the block opening.
+        if (loc.charnum > 0)
+            offset += loc.charnum - 1;
 
         // Find opening brace
         while (offset < src.length && src[offset] != '{')
@@ -72,13 +75,18 @@ final class Check : imported!"ldclint.checks".GenericCheck!Metadata
         if (offset >= src.length) return false;
         offset++;
 
-        // Scan between { and matching } for comment markers
+        // Scan between { and matching } for comment markers or version blocks.
+        // version(X) { } with a false condition is stripped from the AST, leaving
+        // an apparently-empty body even though the source has intentional content.
         for (int depth = 1; offset < src.length && depth > 0; offset++)
         {
             if (src[offset] == '{') depth++;
             else if (src[offset] == '}') depth--;
             else if (src[offset] == '/' && offset + 1 < src.length
-                && (src[offset + 1] == '/' || src[offset + 1] == '*'))
+                && (src[offset + 1] == '/' || src[offset + 1] == '*' || src[offset + 1] == '+'))
+                return true;
+            else if (src[offset] == 'v' && offset + 8 <= src.length
+                && src[offset .. offset + 8] == "version(")
                 return true;
         }
 
