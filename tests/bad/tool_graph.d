@@ -4,6 +4,7 @@
 
 // CHECK-DAG: subgraph "cluster_{{[0-9A-F]+}}" {
 // CHECK-DAG: root=1
+// CHECK-DAG: selfsize={{[0-9]+}}
 // a dependency edge to another module's cluster
 // CHECK-DAG: -> "{{[0-9A-F]+}}" [lhead="cluster_{{[0-9A-F]+}}"
 // functions are collapsed into a counter because they are not in `nodes`
