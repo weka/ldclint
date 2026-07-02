@@ -97,6 +97,7 @@ NodeKind classify(const(char)[] raw) @safe pure nothrow
         case "template instance": return NodeKind.templateInstance;
         case "mixin":          return NodeKind.mixinTemplate;
         case "import":         return NodeKind.import_;
+        case "static import":  return NodeKind.import_;
         default:               return NodeKind.other;
     }
 }
