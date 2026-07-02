@@ -77,6 +77,56 @@ struct EdgeEvent
     bool  isStaticImport;
 }
 
+/// Returns the stable short name for a NodeKind (used in DOT attributes and
+/// CSV columns). Exhaustive final switch -- the compiler enforces coverage.
+string kindName(NodeKind k) @safe pure nothrow
+{
+    final switch (k)
+    {
+        case NodeKind.module_:          return "module";
+        case NodeKind.struct_:          return "struct";
+        case NodeKind.class_:           return "class";
+        case NodeKind.interface_:       return "interface";
+        case NodeKind.union_:           return "union";
+        case NodeKind.enum_:            return "enum";
+        case NodeKind.enumMember:       return "enum_member";
+        case NodeKind.field:            return "field";
+        case NodeKind.variable:         return "variable";
+        case NodeKind.function_:        return "function";
+        case NodeKind.alias_:           return "alias";
+        case NodeKind.template_:        return "template";
+        case NodeKind.templateInstance: return "template_instance";
+        case NodeKind.mixinTemplate:    return "mixin";
+        case NodeKind.import_:          return "import";
+        case NodeKind.other:            return "other";
+    }
+}
+
+/// Map a short kind name back to a NodeKind. Unknown names -> other.
+/// Inverse of `kindName`; accepts the same tokens it emits.
+NodeKind kindFromName(const(char)[] s) @safe pure nothrow
+{
+    switch (s)
+    {
+        case "module":            return NodeKind.module_;
+        case "struct":            return NodeKind.struct_;
+        case "class":             return NodeKind.class_;
+        case "interface":         return NodeKind.interface_;
+        case "union":             return NodeKind.union_;
+        case "enum":              return NodeKind.enum_;
+        case "enum_member":       return NodeKind.enumMember;
+        case "field":             return NodeKind.field;
+        case "variable":          return NodeKind.variable;
+        case "function":          return NodeKind.function_;
+        case "alias":             return NodeKind.alias_;
+        case "template":          return NodeKind.template_;
+        case "template_instance": return NodeKind.templateInstance;
+        case "mixin":             return NodeKind.mixinTemplate;
+        case "import":            return NodeKind.import_;
+        default:                  return NodeKind.other;
+    }
+}
+
 /// Map a raw `Dsymbol.kind()` string to a NodeKind. Unknown -> other.
 NodeKind classify(const(char)[] raw) @safe pure nothrow
 {
