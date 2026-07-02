@@ -29,25 +29,24 @@ enum Metadata = imported!"ldclint.checks".Metadata(
 /// crash mid-traversal still leaves a partial-but-valid file. Output path
 /// is configurable via the `path` parameter (`-Wtool-blame=path=foo.log`).
 ///
-/// Columns:
+/// Columns (in header order):
 ///
-///   node   — opaque pointer (hex) identifying the AST node — stable for
-///            the duration of the compile. Lets downstream tools join
-///            children to parents.
-///   parent — `node` value of the enclosing AST symbol, or empty for the
-///            module row (root). Read straight from `Dsymbol.parent`.
-///   module — fully qualified module name.
-///   scope  — `.`-joined containing scope (e.g. `Outer.Inner`); empty at
-///            module scope. Stack frames a flamegraph tool can fold on.
-///   name   — symbol name; empty for unnamed aggregates.
-///   kind   — module, struct, class, interface, union, enum, enum-member,
-///            field, variable, function, alias, template, template-inst,
-///            mixin-template, import.
-///   bytes  — `__traits(classInstanceSize, ...)` of the AST class the
-///            frontend allocated for this symbol — its compiler-memory
-///            footprint, not the runtime type size.
-///   file   — source path.
+///   kind   — the symbol's raw DMD kind string (module, struct, class,
+///            function, variable, "enum member", "static import", ...).
+///   hash   — deterministic content hash of the symbol (folds in name,
+///            kind, size, and the parent's hash); stable across runs.
+///            Lets downstream tools join rows without depending on pointer
+///            values.
+///   addr   — the AST node pointer in hex; stable for the duration of the
+///            compile.
+///   phash  — the parent symbol's hash (0 at module root).
+///   paddr  — the parent AST node pointer in hex (0 at module root).
+///   file   — source path; empty when the symbol shares its module's file.
 ///   line   — line number.
+///   name   — symbol name; empty for unnamed aggregates.
+///   size   — `__traits(classInstanceSize)` of the AST node the frontend
+///            allocated (compiler-memory footprint, not the runtime type
+///            size).
 final class Check : GraphCheck!Metadata
 {
     mixin imported!"ldclint.checks".RegisterCheck!Metadata;
